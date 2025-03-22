@@ -44,5 +44,38 @@ def listar_arquivos(diretorio_compartilhado):
         print(f"- {arquivo}")
     return arquivos
 
+def menu(diretorio_compartilhado):
+    while True:
+        print("Escolha um comando:")
+        print("[1] Listar peers")
+        print("[2] Obter peers")
+        print("[3] Listar arquivos locais")
+        print("[4] Buscar arquivos")
+        print("[5] Exibir estatisticas")
+        print("[8] Alterar tamanho de chunk")
+        print("[9] Sair")
+        
+        comando_escolhido = input("> ").strip()
+
+        if comando_escolhido == "1":
+            print("1")
+        elif comando_escolhido == "2":
+            print("2")
+        elif comando_escolhido == "3":
+            listar_arquivos(diretorio_compartilhado)
+        elif comando_escolhido == "4":
+            print("3")
+        elif comando_escolhido == "5":
+            print("3")
+        elif comando_escolhido == "6":
+            print("3")
+        elif comando_escolhido == "7":
+            print("3")
+        elif comando_escolhido == "8":
+            print("3")
+        elif comando_escolhido == "9":
+            print("3")
+
+
 if __name__ == "__main__":
     validar_entrada()
