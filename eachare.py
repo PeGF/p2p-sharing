@@ -1,5 +1,7 @@
 import sys
 import os
+import socket
+import threading
 
 def validar_entrada():
     if len(sys.argv) != 4:
@@ -43,6 +45,18 @@ def listar_arquivos(diretorio_compartilhado):
     for arquivo in arquivos:
         print(f"- {arquivo}")
     return arquivos
+
+def inicia_servidor(endereco, porta):
+    servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    servidor.bind((endereco, porta))
+    servidor.listen(5)
+    print(f"{endereco}:{porta}")
+    while True:
+        cliente, addr = servidor.accept()
+        print(f"{addr}")
+        thread = threading.Thread()
+        thread.start
+
 
 def menu(diretorio_compartilhado):
     while True:
