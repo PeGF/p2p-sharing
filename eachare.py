@@ -129,12 +129,28 @@ def obter_comando(n, zero:bool):
                 pass
     return comando_escolhido
 
+def update_peer_status(peer, status):
+    peer[2] = status
+    print(f"Atualizando peer {peer[0]}:{peer[1]} status {peer[2]}")
+    return peer
+
 def send_hello(clock, config, index):
     clock.incrementClock()
     print(f'Encaminhando mensagem "{config[ENDERECO]}:{config[PORTA]} 1 HELLO" para {config[PEERS][index][0]}:{config[PEERS][index][1]}')
     # TODO send message to peer
-    config[PEERS][index][2] = "ONLINE"
-    print(f"Peer {config[PEERS][index][0]}:{config[PEERS][index][1]} status ONLINE")
+    enviado_com_sucesso = True
+    if enviado_com_sucesso:
+        config[PEERS][index] = update_peer_status(config[PEERS][index], "ONLINE")
+    else:
+        config[PEERS][index] = update_peer_status(config[PEERS][index], "OFFLINE")
+
+def receive_hello(clock, config, peer):
+    print(f"Mensagem recebida: {peer[0]}:{peer[1]} 1 HELLO")
+    clock.incrementClock()
+    
+    # TODO receive message from peer
+    # TODO se na lista de peers, atualiza status para ONLINE
+    # TODO se não na lista de peers, adiciona na lista de peers com status ONLINE
 
 def show_peers(clock, config):
     print("Lista de peers:")
