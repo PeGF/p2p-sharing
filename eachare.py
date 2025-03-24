@@ -1,6 +1,7 @@
 import sys
 import os
 import socket
+import threading
 
 def validar_entrada():
     if len(sys.argv) != 4:
@@ -54,17 +55,50 @@ def listar_peers(vizinhos_arquivo):
             
     return peers
 
+def inicia_servidor(endereco, porta):
+    servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    servidor.bind((endereco, porta))
+    servidor.listen(5)
+    print(f"{endereco}:{porta}")
+    while True:
+        cliente, addr = servidor.accept()
+        print(f"{addr}")
+        thread = threading.Thread()
+        thread.start
 
-def criar_socket_tcp(endereco, porta):
-    try:
-        servidor_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        servidor_socket.bind((endereco, porta))
-        servidor_socket.listen(5)
-        print(f"Socket TCP criado e escutando em {endereco}:{porta}")
-        return servidor_socket
-    except Exception as e:
-        print(f"Erro ao criar o socket TCP: {e}")
-        sys.exit(1)
+
+def menu(diretorio_compartilhado):
+    while True:
+        print("Escolha um comando:")
+        print("[1] Listar peers")
+        print("[2] Obter peers")
+        print("[3] Listar arquivos locais")
+        print("[4] Buscar arquivos")
+        print("[5] Exibir estatisticas")
+        print("[8] Alterar tamanho de chunk")
+        print("[9] Sair")
+        
+        comando_escolhido = input("> ").strip()
+
+        if comando_escolhido == "1":
+            print("1")
+        elif comando_escolhido == "2":
+            print("2")
+        elif comando_escolhido == "3":
+            listar_arquivos(diretorio_compartilhado)
+        elif comando_escolhido == "4":
+            print("3")
+        elif comando_escolhido == "5":
+            print("3")
+        elif comando_escolhido == "6":
+            print("3")
+        elif comando_escolhido == "7":
+            print("3")
+        elif comando_escolhido == "8":
+            print("3")
+        elif comando_escolhido == "9":
+            print("3")
+
 
 if __name__ == "__main__":
     listar_peers("vizinhos.txt")
