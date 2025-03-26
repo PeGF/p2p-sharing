@@ -12,18 +12,23 @@ PEERS = 2
 ARQUIVOS = 3
 
 def handle_client(cliente, endereco_cliente):
-    """Função para lidar com a conexão de um cliente."""
     try:
-        print(f"Conexão recebida de {endereco_cliente}")
-        # Aqui você pode adicionar lógica para comunicação com o cliente
-        cliente.sendall(b"Bem-vindo ao servidor!\n")
+        mensagem = cliente.recv(1024).decode("utf-8")
+        print(f"Mensagem recebida de {endereco_cliente}: {mensagem}")
+
+        # Verifica se a mensagem é um HELLO
+        partes = mensagem.split()
+        if len(partes) >= 3 and partes[2] == "HELLO":
+            receive_hello(config, partes[0])  # O remetente é partes[0] (endereço:porta)
+            cliente.sendall(b"HELLO recebido!\n")  # Responder ao peer
+
     except Exception as e:
-        print(f"Erro ao lidar com o cliente {endereco_cliente}: {e}")
+        print(f"Erro ao processar mensagem de {endereco_cliente}: {e}")
+
     finally:
         cliente.close()
 
 def aceita_conexoes(servidor):
-    """Função para aceitar conexões em uma thread separada."""
     while True:
         try:
             cliente, endereco_cliente = servidor.accept()
@@ -136,23 +141,65 @@ def update_peer_status(peer, status):
     print(f"Atualizando peer {peer[0]}:{peer[1]} status {peer[2]}")
     return peer
 
-def send_hello(clock, config, index):
-    clock.incrementClock()
-    print(f'Encaminhando mensagem "{config[ENDERECO]}:{config[PORTA]} 1 HELLO" para {config[PEERS][index][0]}:{config[PEERS][index][1]}')
-    # TODO send message to peer
-    enviado_com_sucesso = True
-    if enviado_com_sucesso:
-        config[PEERS][index] = update_peer_status(config[PEERS][index], "ONLINE")
-    else:
-        config[PEERS][index] = update_peer_status(config[PEERS][index], "OFFLINE")
+def enviar_mensagem(peer, mensagem):
+    try:
+        # socket TCP
+        cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        cliente.settimeout(2)  # Evita que o socket trave indefinidamente
 
-def receive_hello(clock, config, peer):
-    print(f"Mensagem recebida: {peer[0]}:{peer[1]} 1 HELLO")
+        # conectar ao peer
+        endereco, porta = peer[0], peer[1]
+        cliente.connect((endereco, porta))
+
+        # envia mensagem
+        cliente.sendall(mensagem.encode("utf-8"))
+
+        # recebe repsosta
+        resposta = cliente.recv(1024).decode("utf-8")
+        print(f"📩 Resposta recebida de {endereco}:{porta}: {resposta}")
+
+        cliente.close()
+        return True  # deu certo
+
+    except Exception as e:
+        print(f"⚠ Erro ao enviar mensagem para {peer[0]}:{peer[1]} → {e}")
+        return False  # n deu certo
+
+def send_hello(clock, config, index):   
+    # incrementa o clock 
     clock.incrementClock()
-    
-    # TODO receive message from peer
-    # TODO se na lista de peers, atualiza status para ONLINE
-    # TODO se não na lista de peers, adiciona na lista de peers com status ONLINE
+    print(f"=> Atualizando relógio para {clock.clock}")
+
+    peer = config[PEERS][index]
+    mensagem = f"{config[ENDERECO]}:{config[PORTA]} {clock.clock} HELLO"
+
+    print(f'Mensagem "{mensagem}" para {peer[0]}:{peer[1]}')
+
+    if enviar_mensagem(peer, mensagem):
+        config[PEERS][index] = update_peer_status(peer, "ONLINE")
+    else:
+        config[PEERS][index] = update_peer_status(peer, "OFFLINE")
+
+def receive_hello(clock, config, peer_endereco):
+    print(f"Mensagem recebida: {peer_endereco} HELLO")
+
+    # incrementa o clock ao receber a mensagem
+    clock.incrementClock()
+    print(f"=> Atualizando relógio para {clock.clock}")
+
+    endereco, porta = peer_endereco.split(":")
+    porta = int(porta)
+
+    # verifica se o peer já está na lista
+    for peer in config[PEERS]:
+        if peer[0] == endereco and peer[1] == porta:
+            update_peer_status(peer, "ONLINE")
+            return
+
+    # se o peer não está na lista, adiciona
+    novo_peer = [endereco, porta, "ONLINE"]
+    config[PEERS].append(novo_peer)
+    print(f"Novo peer descoberto: {endereco}:{porta} (ONLINE)")
 
 def show_peers(clock, config):
     print("Lista de peers:")
