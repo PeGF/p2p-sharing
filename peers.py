@@ -87,24 +87,35 @@ class Peer:
             self.peers.append(client)
             threading.Thread(target=self.listen_to_peer, args=(client,)).start()
             print(f"Conectado ao peer {host}:{port}")
+            return True
         except ConnectionRefusedError:
             print(f"Falha ao conectar ao peer {host}:{port}")
+            return False
 
     def listen_to_peer(self, client):
         try:
             while True:
                 data = client.recv(1024).decode()
+                
                 if data:
                     print(f"Mensagem recebida: {data}")
+                    #  clock increment
+                    # TODO add functions to handle the received data
+                    if data.split(" ")[2] == "HELLO":
+                        print(f"Atualizando peer {data.split(" ")[0]} status ONLINE")
+                    
         except ConnectionResetError:
             print("Conexão com o peer foi encerrada.")
         finally:
             client.close()
             self.peers.remove(client)
 
-    def send_message(self, message):
+    def send_message(self, host, port, message):
         for peer in self.peers:
             try:
-                peer.sendall(message.encode())
+                if peer.getpeername() == (host, port):
+                    print(message)
+                    peer.sendall(message.encode())
+                    break
             except (BrokenPipeError, ConnectionResetError):
                 self.peers.remove(peer)

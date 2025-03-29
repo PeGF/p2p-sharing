@@ -1,4 +1,4 @@
-from Class import Peer
+from peers import Peer
 
 if __name__ == "__main__":
     # Initialize a peer

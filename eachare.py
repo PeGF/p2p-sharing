@@ -3,17 +3,17 @@ import os
 import socket
 import threading
 from clock import Clock
-
-ENDERECO = 0
-PORTA = 1
-PEERS = 2
-ARQUIVOS = 3
+from peers import Peer
+PEER = 0
+PEERS = 1
+ARQUIVOS = 2
 
 def listar_arquivos(diretorio_compartilhado):
     arquivos = [f for f in os.listdir(diretorio_compartilhado) if os.path.isfile(os.path.join(diretorio_compartilhado, f))]
     # print("Arquivos:")
+    print("")
     for arquivo in arquivos:
-        print(f"- {arquivo}")
+        print(f"{arquivo}")
     return arquivos
 
 def listar_peers(vizinhos_arquivo):
@@ -46,7 +46,7 @@ def validar_entrada():
         print("Formato da porta incorreto")
         sys.exit(1)
 
-    inicia_servidor(endereco, int(porta))
+    peer = Peer(endereco, int(porta))
 
     # arquivo vizinhos
     if not os.path.isfile(vizinhos_arquivo):
@@ -60,11 +60,11 @@ def validar_entrada():
         print(f"Diretorio {diretorio_compartilhado} nao encontrado")
         sys.exit(1)
 
-    arquivos = listar_arquivos(diretorio_compartilhado)
+    # arquivos = listar_arquivos(diretorio_compartilhado)
 
     # print("Parametros Validos")
 
-    config = [endereco, porta, peers, arquivos]
+    config = [peer, peers, diretorio_compartilhado]
     return config
 
 def obter_comando(n, zero:bool):
@@ -98,8 +98,12 @@ def show_peers(clock, config):
         case 0:
             return
         case _:
-            pass
-
+            conn = config[PEER].connect_to_peer(config[PEERS][comando - 1][0], config[PEERS][comando - 1][1])
+            if conn:
+                clock.incrementClock()
+                message = f'Encaminhando mensagem "{config[PEER].host}:{config[PEER].port} 1 HELLO" para {config[PEERS][comando - 1][0]}:{config[PEERS][comando - 1][1]}'
+                config[PEER].send_message(config[PEERS][comando - 1][0], config[PEERS][comando - 1][1], message)
+                update_peer_status(config[PEERS][comando - 1], "ONLINE")
 def menu(clock, config):
     while True:
         print("Escolha um comando:")
@@ -117,17 +121,17 @@ def menu(clock, config):
             case 2:
                 print("2")	
             case 3:
-                print(config)
+                listar_arquivos(config[ARQUIVOS])
             case 4:
                 print("3")
             case 5:
-                print("3")
+                print(config)
             case 6:
-                print("3")
+                print(config[PEER])
             case 7:
-                print("3")
+                print(config[PEERS])
             case 8:
-                print("3")
+                print("8")
             case 9:
                 break
 
