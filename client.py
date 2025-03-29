@@ -1,8 +1,11 @@
-from Class import Server
+from Class import Peer
 
 if __name__ == "__main__":
-    server = Server()
-    host = 'localhost'
-    port = int(input())
-    server.connect_to_peer(host, port)
-    
+    # Initialize a peer
+    peer = Peer('127.0.0.1')
+
+    # Optionally, connect to another peer
+    peer.connect_to_peer('127.0.0.1', 2270)
+
+    # Send a message to connected peers
+    peer.send_message("Pedro compra REPO")
