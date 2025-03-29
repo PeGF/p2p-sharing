@@ -2,8 +2,6 @@ import sys
 import os
 import socket
 import threading
-import socket
-import threading
 from clock import Clock
 
 ENDERECO = 0
@@ -132,7 +130,6 @@ def menu(clock, config):
                 print("3")
             case 9:
                 break
-
 
 def main():
     clock = Clock()
