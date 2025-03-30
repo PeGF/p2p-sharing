@@ -3,17 +3,19 @@ import os
 import socket
 import threading
 from clock import Clock
+from Class import Peer
 
-ENDERECO = 0
-PORTA = 1
-PEERS = 2
-ARQUIVOS = 3
+PEER = 0
+PEERS = 1
+ARQUIVOS = 2
 
 def listar_arquivos(diretorio_compartilhado):
     arquivos = [f for f in os.listdir(diretorio_compartilhado) if os.path.isfile(os.path.join(diretorio_compartilhado, f))]
     # print("Arquivos:")
+    print("")
     for arquivo in arquivos:
-        print(f"- {arquivo}")
+        print(f"{arquivo}")
+        print()
     return arquivos
 
 def listar_peers(vizinhos_arquivo):
@@ -46,7 +48,7 @@ def validar_entrada():
         print("Formato da porta incorreto")
         sys.exit(1)
 
-    inicia_servidor(endereco, int(porta))
+    peer = Peer(endereco, int(porta))
 
     # arquivo vizinhos
     if not os.path.isfile(vizinhos_arquivo):
@@ -60,11 +62,11 @@ def validar_entrada():
         print(f"Diretorio {diretorio_compartilhado} nao encontrado")
         sys.exit(1)
 
-    arquivos = listar_arquivos(diretorio_compartilhado)
+    # arquivos = listar_arquivos(diretorio_compartilhado)
 
     # print("Parametros Validos")
 
-    config = [endereco, porta, peers, arquivos]
+    config= [peer, peers, diretorio_compartilhado]
     return config
 
 def obter_comando(n, zero:bool):
@@ -93,12 +95,28 @@ def show_peers(clock, config):
     print("[0] voltar para o menu anterior")
     for peer in config[PEERS]:
         print(f"[{config[PEERS].index(peer) + 1}] {peer[0]}:{peer[1]} {peer[2]}")
+
     comando = obter_comando(len(config[PEERS]), True)
-    match comando:
-        case 0:
-            return
-        case _:
-            pass
+
+    if comando == 0:
+        return
+
+    peer_selecionado = config[PEERS][comando - 1]
+    conn = config[PEER].connect_to_peer(peer_selecionado[0], peer_selecionado[1], clock)
+    if conn:
+        message = f"HELLO"
+        config[PEER].send_message(peer_selecionado[0], peer_selecionado[1], message, clock)
+        
+        try:
+            config[PEER].peers[-1].settimeout(3)
+            resposta = config[PEER].peers[-1].recv(1024).decode()
+            if "HELLO" in resposta:
+                update_peer_status(peer_selecionado, "ONLINE")
+        except socket.timeout:
+            print(f"{peer_selecionado[0]}:{peer_selecionado[1]} não respondeu ao HELLO (timeout).")
+        except Exception as e:
+            print(f"Erro ao esperar resposta de {peer_selecionado[0]}:{peer_selecionado[1]} - {e}")
+
 
 def menu(clock, config):
     while True:
@@ -117,17 +135,17 @@ def menu(clock, config):
             case 2:
                 print("2")	
             case 3:
-                print(config)
+                listar_arquivos(config[ARQUIVOS])
             case 4:
                 print("3")
             case 5:
-                print("3")
+                print(config)
             case 6:
-                print("3")
+                print(config[PEER])
             case 7:
-                print("3")
+                print(config[PEERS])
             case 8:
-                print("3")
+                print("8")
             case 9:
                 break
 

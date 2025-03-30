@@ -2,7 +2,6 @@ import socket
 import threading
 import random as rd
 
-PORT = rd.randint(1000, 6000)
 
 class Peer:
     """
@@ -36,7 +35,7 @@ class Peer:
         send_message(message):
             Sends a message to all connected peers.
     """
-    def __init__(self, host='127.0.0.1', port=PORT):
+    def __init__(self, host, port):
         self.host = host
         self.port = port
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -80,31 +79,54 @@ class Peer:
                 except (BrokenPipeError, ConnectionResetError):
                     self.peers.remove(peer)
 
-    def connect_to_peer(self, host, port):
+    def connect_to_peer(self, host, port, clock):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             client.connect((host, int(port)))
             self.peers.append(client)
-            threading.Thread(target=self.listen_to_peer, args=(client,)).start()
+            threading.Thread(target=self.listen_to_peer, args=(client, clock)).start()
             print(f"Conectado ao peer {host}:{port}")
+            return True
         except ConnectionRefusedError:
             print(f"Falha ao conectar ao peer {host}:{port}")
+            return False
 
-    def listen_to_peer(self, client):
+    def listen_to_peer(self, client, clock):
         try:
             while True:
                 data = client.recv(1024).decode()
                 if data:
-                    print(f"Mensagem recebida: {data}")
+                    print(f"Mensagem recebida: {data.strip()}")
+                    # incrementa o clock ao receber a mensagem
+                    clock.incrementClock()
+                    # verifica se é hello e responde com outro hello
+                    partes = data.strip().split(" ")
+                    if len(partes) >= 3:
+                        if partes[2] == "HELLO":
+                            print(f"Atualizando peer {partes[0]} status ONLINE")
+                            resposta = f"RETURN_HELLO\n"
+                            client.send_message(resposta.encode())
+                        elif partes[2] == "RETURN_HELLO":
+                            print("online")
         except ConnectionResetError:
             print("Conexão com o peer foi encerrada.")
         finally:
             client.close()
-            self.peers.remove(client)
+            if client in self.peers:
+                self.peers.remove(client)
 
-    def send_message(self, message):
+
+    def send_message(self, host, port, message, clock):
+        clock.incrementClock() # incrementa o clock
+        # host, porta e clock
+        mensagem_formatada = f"{self.host}:{self.port} {clock.clock} {message}\n"
+        
+        print(f'Encaminhando mensagem "{mensagem_formatada.strip()}" para {host}:{port}')
+        
         for peer in self.peers:
             try:
-                peer.sendall(message.encode())
+                if peer.getpeername() == (host, port):
+                    peer.sendall(mensagem_formatada.encode())
+                    break
             except (BrokenPipeError, ConnectionResetError):
                 self.peers.remove(peer)
