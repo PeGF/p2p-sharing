@@ -16,7 +16,7 @@ class Peer:
     def peers_conhecidos(self, peers):
         self.peers_conhecidos = peers
 
-    def update_peer_status(sel, peer, status):
+    def update_peer_status(self, peer, status):
         peer[2] = status
         print(f"Atualizando peer {peer[0]}:{peer[1]} status {peer[2]}")
         return peer
@@ -40,7 +40,7 @@ class Peer:
                 if not data:
                     break
                 if not "RETURN" in data:
-                    print(f"Mensagem recebida: {data}")
+                    print(f'Mensagem recebida: "{data.strip()}"')
                     self.clock.incrementClock()
                     partes = data.strip().split(" ")
                     if partes[2] == "HELLO":
@@ -51,6 +51,10 @@ class Peer:
                         for peer in self.peers_conhecidos:
                             if peer[0] == ip[0] and peer[1] == int(ip[1]):
                                 peer = self.update_peer_status(peer, "ONLINE")
+                    elif partes[2] == "BYE":
+                        for peer in self.peers_conhecidos:
+                            if peer[0] == ip[0] and peer[1] == int(ip[1]):
+                                peer = self.update_peer_status(peer, "OFFLINE")
 
         except ConnectionResetError:
             print(f"Conexão perdida com {addr}")
@@ -85,7 +89,7 @@ class Peer:
                 
                 if data:
                     if not "RETURN" in data:	
-                        print(f"Mensagem recebida: {data.strip()}")
+                        print(f'Mensagem recebida: {data.strip()}"')
                         # incrementa o clock ao receber a mensagem
                         self.clock.incrementClock()
                         # verifica se é hello e responde com outro hello
@@ -96,6 +100,11 @@ class Peer:
                                 print(f"Atualizando peer {partes[0]} status ONLINE")
                                 resposta = f"RETURN_HELLO"
                                 self.send_message(ip[0], ip[1], resposta.encode())
+                            elif partes[2] == "BYE":
+                                for peer in self.peers_conhecidos:
+                                    if peer[0] == ip[0] and peer[1] == int(ip[1]):
+                                        peer = self.update_peer_status(peer, "OFFLINE")
+
                     else:
                         partes = data.strip().split(" ")
                         if len(partes) >= 3:
@@ -120,6 +129,5 @@ class Peer:
             try:
                 if peer.getpeername() == (host, port):
                     peer.sendall(mensagem_formatada.encode())
-                    break
             except (BrokenPipeError, ConnectionResetError):
                 self.peers.remove(peer)

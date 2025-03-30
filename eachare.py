@@ -144,7 +144,11 @@ def menu(clock, config):
             case 8:
                 print("8")
             case 9:
-                break
+                print("Saindo...")
+                for peer in config[PEER].peers_conhecidos:
+                    if peer[2] == "ONLINE":
+                        config[PEER].send_message(peer[0], peer[1], "BYE")
+                sys.exit(0)
 
 def main():
     clock = Clock()
