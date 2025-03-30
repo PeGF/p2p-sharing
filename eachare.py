@@ -148,13 +148,12 @@ def menu(clock, config):
                 for peer in config[PEER].peers_conhecidos:
                     if peer[2] == "ONLINE":
                         config[PEER].send_message(peer[0], peer[1], "BYE")
-                sys.exit(0)
-
+                return 
 def main():
     clock = Clock()
     config = validar_entrada(clock)
     menu(clock, config)
-    # TODO not terminating correctly
+    return
 
 if __name__ == "__main__":
     main()

@@ -131,3 +131,16 @@ class Peer:
                     peer.sendall(mensagem_formatada.encode())
             except (BrokenPipeError, ConnectionResetError):
                 self.peers.remove(peer)
+
+    def close_all_sockets(self):
+        """Closes all active sockets and the server socket."""
+        for peer in self.peers:
+            try:
+                peer.close()
+            except Exception as e:
+                print(f"Erro ao fechar conexão com peer: {e}")
+        self.peers.clear()
+        try:
+            self.server.close()
+        except Exception as e:
+            print(f"Erro ao fechar o servidor: {e}")
