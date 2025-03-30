@@ -97,7 +97,6 @@ class Peer:
                 data = client.recv(1024).decode()
                 
                 if data:
-<<<<<<< HEAD:Class.py
                     print(f"Mensagem recebida: {data.strip()}")
                     # incrementa o clock ao receber a mensagem
                     clock.incrementClock()
@@ -110,14 +109,6 @@ class Peer:
                             client.send_message(resposta.encode())
                         elif partes[2] == "RETURN_HELLO":
                             print("online")
-=======
-                    print(f"Mensagem recebida: {data}")
-                    #  clock increment
-                    # TODO add functions to handle the received data
-                    if data.split(" ")[2] == "HELLO":
-                        print(f"Atualizando peer {data.split(" ")[0]} status ONLINE")
-                    
->>>>>>> 8eb592c3672514163104498403dc35c304da6a08:peers.py
         except ConnectionResetError:
             print("Conexão com o peer foi encerrada.")
         finally:
@@ -125,7 +116,6 @@ class Peer:
             if client in self.peers:
                 self.peers.remove(client)
 
-<<<<<<< HEAD:Class.py
 
     def send_message(self, host, port, message, clock):
         clock.incrementClock() # incrementa o clock
@@ -138,14 +128,6 @@ class Peer:
             try:
                 if peer.getpeername() == (host, port):
                     peer.sendall(mensagem_formatada.encode())
-=======
-    def send_message(self, host, port, message):
-        for peer in self.peers:
-            try:
-                if peer.getpeername() == (host, port):
-                    print(message)
-                    peer.sendall(message.encode())
->>>>>>> 8eb592c3672514163104498403dc35c304da6a08:peers.py
                     break
             except (BrokenPipeError, ConnectionResetError):
                 self.peers.remove(peer)
