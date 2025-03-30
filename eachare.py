@@ -16,7 +16,7 @@ def listar_arquivos(diretorio_compartilhado):
     for arquivo in arquivos:
         print(f"{arquivo}")
         print()
-    return arquivos
+    #return arquivos
 
 def listar_peers(vizinhos_arquivo):
     peers = []
@@ -113,6 +113,17 @@ def show_peers(clock, config):
             except Exception as e:
                 print(f"Erro ao esperar resposta de {peer_selecionado[0]}:{peer_selecionado[1]} - {e}")
 
+def desconectar_peers(config):
+    for peer in config[PEER].peers_conhecidos:
+        if peer[2] == "ONLINE":
+            try:
+                config[PEER].send_message(peer[0], peer[1], "BYE")
+                print(f"Mensagem 'BYE' enviada para {peer[0]}:{peer[1]}")
+            except Exception as e:
+                print(f"Erro ao enviar 'BYE' para {peer[0]}:{peer[1]}: {e}")
+
+    # Encerra todas as conexões e o servidor
+    config[PEER].close_all_sockets()
 
 def menu(clock, config):
     while True:
@@ -131,7 +142,7 @@ def menu(clock, config):
             case 2:
                 print("2")	
             case 3:
-                listar_arquivos(config[ARQUIVOS])
+                listar_arquivos(config[1])
             case 4:
                 print("3")
             case 5:
@@ -145,10 +156,10 @@ def menu(clock, config):
                 print("8")
             case 9:
                 print("Saindo...")
-                for peer in config[PEER].peers_conhecidos:
-                    if peer[2] == "ONLINE":
-                        config[PEER].send_message(peer[0], peer[1], "BYE")
-                return 
+                desconectar_peers(config)
+                print("Threads ativas:", threading.enumerate())
+                sys.exit(0)
+                break
 def main():
     clock = Clock()
     config = validar_entrada(clock)
