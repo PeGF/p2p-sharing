@@ -27,7 +27,7 @@ def listar_peers(vizinhos_arquivo):
             print(f"Adicionando novo peer {endereco}:{porta} status OFFLINE")
     return peers
 
-def validar_entrada():
+def validar_entrada(clock):
     if len(sys.argv) != 4:
         print("Formato: python eachare.py <endereço>:<porta> <vizinhos.txt> <diretório_compartilhado>")
         sys.exit(1)
@@ -48,14 +48,14 @@ def validar_entrada():
         print("Formato da porta incorreto")
         sys.exit(1)
 
-    peer = Peer(endereco, int(porta))
+    peer = Peer(endereco, int(porta),clock)
 
     # arquivo vizinhos
     if not os.path.isfile(vizinhos_arquivo):
         print(f"Arquivo de vizinhos '{vizinhos_arquivo}' não encontrado")
         sys.exit(1)
 
-    peers = listar_peers(vizinhos_arquivo)
+    peer.peers_conhecidos(listar_peers(vizinhos_arquivo))
 
     # diretorio compartilhafdo
     if not os.path.isdir(diretorio_compartilhado):
@@ -66,7 +66,7 @@ def validar_entrada():
 
     # print("Parametros Validos")
 
-    config= [peer, peers, diretorio_compartilhado]
+    config= [peer, diretorio_compartilhado]
     return config
 
 def obter_comando(n, zero:bool):
@@ -85,37 +85,33 @@ def obter_comando(n, zero:bool):
                 pass
     return comando_escolhido
 
-def update_peer_status(peer, status):
-    peer[2] = status
-    print(f"Atualizando peer {peer[0]}:{peer[1]} status {peer[2]}")
-    return peer
-
 def show_peers(clock, config):
     print("Lista de peers:")
     print("[0] voltar para o menu anterior")
-    for peer in config[PEERS]:
-        print(f"[{config[PEERS].index(peer) + 1}] {peer[0]}:{peer[1]} {peer[2]}")
+    for peer in config[PEER].peers_conhecidos:
+        print(f"[{config[PEER].peers_conhecidos.index(peer) + 1}] {peer[0]}:{peer[1]} {peer[2]}")
 
-    comando = obter_comando(len(config[PEERS]), True)
+    comando = obter_comando(len(config[PEER].peers_conhecidos), True)
 
     if comando == 0:
         return
 
-    peer_selecionado = config[PEERS][comando - 1]
-    conn = config[PEER].connect_to_peer(peer_selecionado[0], peer_selecionado[1], clock)
-    if conn:
-        message = f"HELLO"
-        config[PEER].send_message(peer_selecionado[0], peer_selecionado[1], message, clock)
-        
-        try:
-            config[PEER].peers[-1].settimeout(3)
-            resposta = config[PEER].peers[-1].recv(1024).decode()
-            if "HELLO" in resposta:
-                update_peer_status(peer_selecionado, "ONLINE")
-        except socket.timeout:
-            print(f"{peer_selecionado[0]}:{peer_selecionado[1]} não respondeu ao HELLO (timeout).")
-        except Exception as e:
-            print(f"Erro ao esperar resposta de {peer_selecionado[0]}:{peer_selecionado[1]} - {e}")
+    peer_selecionado = config[PEER].peers_conhecidos[comando - 1]
+    if peer_selecionado[2] != "ONLINE":
+        conn = config[PEER].connect_to_peer(peer_selecionado[0], peer_selecionado[1])
+        if conn:
+            message = f"HELLO"
+            config[PEER].send_message(peer_selecionado[0], peer_selecionado[1], message)
+            
+            try:
+                config[PEER].peers[-1].settimeout(3)
+                resposta = config[PEER].peers[-1].recv(1024).decode()
+                if "HELLO" in resposta:
+                    peer_selecionado = config[PEER].update_peer_status(peer_selecionado, "ONLINE")
+            except socket.timeout:
+                print(f"{peer_selecionado[0]}:{peer_selecionado[1]} não respondeu ao HELLO (timeout).")
+            except Exception as e:
+                print(f"Erro ao esperar resposta de {peer_selecionado[0]}:{peer_selecionado[1]} - {e}")
 
 
 def menu(clock, config):
@@ -144,7 +140,7 @@ def menu(clock, config):
             case 6:
                 print(config[PEER])
             case 7:
-                print(config[PEERS])
+                print(config[PEER].peers_conhecidos)
             case 8:
                 print("8")
             case 9:
@@ -152,7 +148,7 @@ def menu(clock, config):
 
 def main():
     clock = Clock()
-    config = validar_entrada()
+    config = validar_entrada(clock)
     menu(clock, config)
     # TODO not terminating correctly
 

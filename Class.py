@@ -1,43 +1,11 @@
 import socket
 import threading
-import random as rd
-
 
 class Peer:
-    """
-    A class to represent a peer in a peer-to-peer (P2P) network.
-
-    Attributes:
-        host (str): The hostname or IP address of the peer. Defaults to '127.0.0.1'.
-        port (int): The port number on which the peer listens for connections.
-        server (socket.socket): The server socket for handling incoming connections.
-        peers (list): A list of connected peer sockets.
-
-    Methods:
-        __init__(host='127.0.0.1', port=PORT):
-            Initializes the Peer instance, sets up the server socket, and starts the server thread.
-
-        start_server():
-            Listens for incoming connections and spawns a thread to handle each connected peer.
-
-        handle_peer(conn, addr):
-            Handles communication with a connected peer, receives messages, and broadcasts them to other peers.
-
-        broadcast(message, sender_conn):
-            Sends a message to all connected peers except the sender.
-
-        connect_to_peer(host, port):
-            Connects to another peer in the network and starts a thread to listen for messages from it.
-
-        listen_to_peer(client):
-            Listens for messages from a connected peer and handles disconnection.
-
-        send_message(message):
-            Sends a message to all connected peers.
-    """
-    def __init__(self, host, port):
+    def __init__(self, host, port, clock):
         self.host = host
         self.port = port
+        self.clock = clock
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((host, port))
         self.server.listen(5)
@@ -45,11 +13,19 @@ class Peer:
         threading.Thread(target=self.start_server).start()
         print(f"Peer iniciado em {host}:{port}")
 
+    def peers_conhecidos(self, peers):
+        self.peers_conhecidos = peers
+
+    def update_peer_status(sel, peer, status):
+        peer[2] = status
+        print(f"Atualizando peer {peer[0]}:{peer[1]} status {peer[2]}")
+        return peer
+
     def start_server(self):
         try:
             while True:
                 conn, addr = self.server.accept()
-                print(f"Conexão recebida de {addr}")
+                # print(f"Conexão recebida de {addr}")
                 threading.Thread(target=self.handle_peer, args=(conn, addr)).start()
         except KeyboardInterrupt:
             print("Servidor encerrado.")
@@ -63,8 +39,19 @@ class Peer:
                 data = conn.recv(1024).decode()
                 if not data:
                     break
-                print(f"Mensagem recebida de {addr}: {data}")
-                self.broadcast(data, conn)
+                if not "RETURN" in data:
+                    print(f"Mensagem recebida: {data}")
+                    self.clock.incrementClock()
+                    partes = data.strip().split(" ")
+                    if partes[2] == "HELLO":
+                        ip = partes[0].split(":")
+                        mensagem = f"{self.host}:{self.port} {self.clock.clock} RETURN_HELLO"
+                        self.broadcast(mensagem, conn)
+                        #  Atualiza o status do peer
+                        for peer in self.peers_conhecidos:
+                            if peer[0] == ip[0] and peer[1] == int(ip[1]):
+                                peer = self.update_peer_status(peer, "ONLINE")
+
         except ConnectionResetError:
             print(f"Conexão perdida com {addr}")
         finally:
@@ -73,42 +60,47 @@ class Peer:
 
     def broadcast(self, message, sender_conn):
         for peer in self.peers:
-            if peer != sender_conn:
+            if peer == sender_conn:
                 try:
                     peer.sendall(message.encode())
                 except (BrokenPipeError, ConnectionResetError):
                     self.peers.remove(peer)
 
-    def connect_to_peer(self, host, port, clock):
+    def connect_to_peer(self, host, port):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             client.connect((host, int(port)))
             self.peers.append(client)
-            threading.Thread(target=self.listen_to_peer, args=(client, clock)).start()
+            threading.Thread(target=self.listen_to_peer, args=(client,)).start()
             print(f"Conectado ao peer {host}:{port}")
             return True
         except ConnectionRefusedError:
             print(f"Falha ao conectar ao peer {host}:{port}")
             return False
 
-    def listen_to_peer(self, client, clock):
+    def listen_to_peer(self, client):
         try:
             while True:
                 data = client.recv(1024).decode()
                 
                 if data:
-                    print(f"Mensagem recebida: {data.strip()}")
-                    # incrementa o clock ao receber a mensagem
-                    clock.incrementClock()
-                    # verifica se é hello e responde com outro hello
-                    partes = data.strip().split(" ")
-                    if len(partes) >= 3:
-                        if partes[2] == "HELLO":
-                            print(f"Atualizando peer {partes[0]} status ONLINE")
-                            resposta = f"RETURN_HELLO\n"
-                            client.send_message(resposta.encode())
-                        elif partes[2] == "RETURN_HELLO":
-                            print("online")
+                    if not "RETURN" in data:	
+                        print(f"Mensagem recebida: {data.strip()}")
+                        # incrementa o clock ao receber a mensagem
+                        self.clock.incrementClock()
+                        # verifica se é hello e responde com outro hello
+                        partes = data.strip().split(" ")
+                        if len(partes) >= 3:
+                            ip = partes[0].split(":")
+                            if partes[2] == "HELLO":
+                                print(f"Atualizando peer {partes[0]} status ONLINE")
+                                resposta = f"RETURN_HELLO"
+                                self.send_message(ip[0], ip[1], resposta.encode())
+                    else:
+                        partes = data.strip().split(" ")
+                        if len(partes) >= 3:
+                            if partes[2] == "RETURN_HELLO":
+                                print("online")
         except ConnectionResetError:
             print("Conexão com o peer foi encerrada.")
         finally:
@@ -117,10 +109,10 @@ class Peer:
                 self.peers.remove(client)
 
 
-    def send_message(self, host, port, message, clock):
-        clock.incrementClock() # incrementa o clock
+    def send_message(self, host, port, message):
+        self.clock.incrementClock() # incrementa o clock
         # host, porta e clock
-        mensagem_formatada = f"{self.host}:{self.port} {clock.clock} {message}\n"
+        mensagem_formatada = f"{self.host}:{self.port} {self.clock.clock} {message}\n"
         
         print(f'Encaminhando mensagem "{mensagem_formatada.strip()}" para {host}:{port}')
         
