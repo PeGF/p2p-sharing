@@ -13,7 +13,6 @@ def listar_arquivos(diretorio_compartilhado):
     arquivos = [f for f in os.listdir(diretorio_compartilhado) if os.path.isfile(os.path.join(diretorio_compartilhado, f))]
     # print("Arquivos:")
     print("")
-    print("")
     for arquivo in arquivos:
         print(f"{arquivo}")
         print()
@@ -50,7 +49,6 @@ def validar_entrada():
         sys.exit(1)
 
     peer = Peer(endereco, int(porta))
-    peer = Peer(endereco, int(porta))
 
     # arquivo vizinhos
     if not os.path.isfile(vizinhos_arquivo):
@@ -64,7 +62,6 @@ def validar_entrada():
         print(f"Diretorio {diretorio_compartilhado} nao encontrado")
         sys.exit(1)
 
-    # arquivos = listar_arquivos(diretorio_compartilhado)
     # arquivos = listar_arquivos(diretorio_compartilhado)
 
     # print("Parametros Validos")
@@ -139,7 +136,6 @@ def menu(clock, config):
                 print("2")	
             case 3:
                 listar_arquivos(config[ARQUIVOS])
-                listar_arquivos(config[ARQUIVOS])
             case 4:
                 print("3")
             case 5:
@@ -147,12 +143,9 @@ def menu(clock, config):
                 print(config)
             case 6:
                 print(config[PEER])
-                print(config[PEER])
             case 7:
                 print(config[PEERS])
-                print(config[PEERS])
             case 8:
-                print("8")
                 print("8")
             case 9:
                 break
