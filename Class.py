@@ -36,8 +36,7 @@ class Peer:
 
     def update_peer_status(self, peer, status):
         peer[2] = status
-        if status == "ONLINE":
-            print(f"Atualizando peer {peer[0]}:{peer[1]} status {peer[2]}")
+        print(f"Atualizando peer {peer[0]}:{peer[1]} status {peer[2]}")
         return peer
     
     def get_host(self):
@@ -131,9 +130,11 @@ class Peer:
                         if not conhecido:
                             self.add_peer([peers_recebidos[0], int(peers_recebidos[1]), peers_recebidos[2]])
                     self.escrever_peers(self.get_peers_conhecidos(), self.vizinhos_arquivo)
+
                 elif partes[2] == "BYE":
                     for peer in self.peers_conhecidos:
                         if peer[0] == ip[0] and peer[1] == int(ip[1]):
+                            print("entrou")
                             peer = self.update_peer_status(peer, "OFFLINE")
                             mensage = f"{self.host}:{self.port} {self.clock.clock} RETURN_BYE"
                             self.broadcast(mensage, conn)
