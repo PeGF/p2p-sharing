@@ -101,24 +101,9 @@ def show_peers(peer):
 
     if comando == 0:
         return
-
-    peer_selecionado = peers_filtrados[comando - 1]
-    if peer_selecionado[2] != "ONLINE":
-        conn = peer.connect_to_peer(peer_selecionado[0], peer_selecionado[1])
-        if conn:
-            message = f"HELLO"
-            peer.send_message(peer_selecionado[0], peer_selecionado[1], message)
-            
-            try:
-                peer.peers[-1].settimeout(4)  # Define um timeout de 4 segundos para a conexão mais recente
-                resposta = peer.peers[-1].recv(1024).decode()  # Aguarda uma resposta de até 1024 bytes e decodifica
-                if "HELLO" in resposta:
-                    peer_selecionado = peer.update_peer_status(peer_selecionado, "ONLINE")
-                    print("show_peers")
-            except socket.timeout:
-                print(f"{peer_selecionado[0]}:{peer_selecionado[1]} não respondeu ao HELLO (timeout).")
-            except Exception as e:
-                print(f"Erro ao esperar resposta de {peer_selecionado[0]}:{peer_selecionado[1]} - {e}")
+    else:
+        peer.connect_to_peer(peers_filtrados[comando - 1][0], peers_filtrados[comando - 1][1])
+        peer.send_message(peers_filtrados[comando - 1][0], peers_filtrados[comando - 1][1], "HELLO")
 
 def get_peers(peers):
     for peer_conhecido in peers.peers_conhecidos:
