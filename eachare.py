@@ -23,6 +23,14 @@ def listar_peers(vizinhos_arquivo):
             print(f"Adicionando novo peer {endereco}:{porta} status OFFLINE")
     return peers
 
+def escrever_peers(peers, vizinhos_arquivo):
+    # sobrescreve o arquivo todo, pois o conteudo da memoria ja foi atualizado corretamente (teoricamente)
+    # se fosse adicionar apenas os novos, teria que fazer checagem se ja existe e add apenas os novos, entao assim parece mais simples
+    with open(vizinhos_arquivo, "w") as f:
+        for peer in peers:
+            f.write(f"{peer[0]}:{peer[1]}\n")
+            #print(f"Adicionando peer {peer[0]}:{peer[1]}")
+
 def validar_entrada(clock):
     if len(sys.argv) != 4:
         print("Formato: python eachare.py <endereço>:<porta> <vizinhos.txt> <diretório_compartilhado>")
@@ -99,21 +107,26 @@ def show_peers(peer):
             peer.send_message(peer_selecionado[0], peer_selecionado[1], message)
             
             try:
-                peer.peers[-1].settimeout(3)
-                resposta = peer.peers[-1].recv(1024).decode()
+                peer.peers[-1].settimeout(4)  # Define um timeout de 3 segundos para a conexão mais recente
+                resposta = peer.peers[-1].recv(1024).decode()  # Aguarda uma resposta de até 1024 bytes e decodifica
                 if "HELLO" in resposta:
                     peer_selecionado = peer.update_peer_status(peer_selecionado, "ONLINE")
+                    print("show_peers")
             except socket.timeout:
                 print(f"{peer_selecionado[0]}:{peer_selecionado[1]} não respondeu ao HELLO (timeout).")
             except Exception as e:
                 print(f"Erro ao esperar resposta de {peer_selecionado[0]}:{peer_selecionado[1]} - {e}")
 
-def get_peers(peer):
-    for peer in peer.peers_conhecidos:
-        conn = peer.connect_to_peer(peer[0], peer[1])
+def get_peers(peers):
+    for peer_conhecido in peers.peers_conhecidos:
+        conn = peers.connect_to_peer(peer_conhecido[0], peer_conhecido[1])
         if conn:
             message = f"GET_PEERS"
-            peer.send_message(peer[0], peer[1], message)
+            peers.send_message(peer_conhecido[0], peer_conhecido[1], message)
+            peers.update_peer_status(peer_conhecido, "ONLINE")
+        else:
+            peers.update_peer_status(peer_conhecido, "OFFLINE")
+
 
 def menu(peer):
     while True:
@@ -130,7 +143,7 @@ def menu(peer):
             case 1:
                 show_peers(peer)
             case 2:
-                print("2")	
+                get_peers(peer)	
             case 3:
                 listar_arquivos(peer.diretorio_compartilhado)
             case 4:

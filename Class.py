@@ -46,22 +46,26 @@ class Peer:
                 if not data:
                     break
                 if not "RETURN" in data:
-                    print(f'Mensagem recebida: "{data.strip()}"')
+                    print(f'Mensagem recebida (HANDLE_PEER): "{data.strip()}"')
                     self.clock.incrementClock()
                     partes = data.strip().split(" ")
                     if partes[2] == "HELLO":
                         ip = partes[0].split(":")
                         mensagem = f"{self.host}:{self.port} {self.clock.clock} RETURN_HELLO"
                         self.broadcast(mensagem, conn)
-                        #  Atualiza o status do peer
+                        # verifica se o peer é conhecido e adiciona caso n seja
+                        peer_found = False
                         for peer in self.peers_conhecidos:
                             if peer[0] == ip[0] and peer[1] == int(ip[1]):
+                                peer_found = True
                                 peer = self.update_peer_status(peer, "ONLINE")
+                                break
+                        if not peer_found:
+                            self.add_peer([ip[0], int(ip[1]), "ONLINE"])
                     elif partes[2] == "BYE":
                         for peer in self.peers_conhecidos:
                             if peer[0] == ip[0] and peer[1] == int(ip[1]):
                                 peer = self.update_peer_status(peer, "OFFLINE")
-
         except ConnectionResetError:
             print(f"Conexão perdida com {addr}")
         finally:
@@ -82,7 +86,7 @@ class Peer:
             client.connect((host, int(port)))
             self.peers.append(client)
             threading.Thread(target=self.listen_to_peer, args=(client,)).start()
-            print(f"Conectado ao peer {host}:{port}")
+            #print(f"Conectado ao peer {host}:{port}")
             return True
         except ConnectionRefusedError:
             print(f"Falha ao conectar ao peer {host}:{port}")
@@ -95,7 +99,7 @@ class Peer:
                 
                 if data:
                     if not "RETURN" in data:	
-                        print(f'Mensagem recebida: {data.strip()}"')
+                        print(f'Mensagem recebida (LISTEN_TO_PEER): {data.strip()}"')
                         # incrementa o clock ao receber a mensagem
                         self.clock.incrementClock()
                         # verifica se é hello e responde com outro hello
