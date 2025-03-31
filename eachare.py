@@ -20,8 +20,6 @@ def listar_peers(vizinhos_arquivo):
             print(f"Adicionando novo peer {endereco}:{porta} status OFFLINE")
     return peers
 
-
-
 def validar_entrada(clock):
     if len(sys.argv) != 4:
         print("Formato: python eachare.py <endereço>:<porta> <vizinhos.txt> <diretório_compartilhado>")
@@ -50,13 +48,13 @@ def validar_entrada(clock):
         print(f"Arquivo de vizinhos '{vizinhos_arquivo}' não encontrado")
         sys.exit(1)
 
-    peer.peers_conhecidos(listar_peers(vizinhos_arquivo), vizinhos_arquivo)
+    peer.set_peers_conhecidos(listar_peers(vizinhos_arquivo), vizinhos_arquivo)
 
     #diretorio compartilhafdo
     if not os.path.isdir(diretorio_compartilhado):
         print(f"Diretorio {diretorio_compartilhado} nao encontrado")
         sys.exit(1)
-    peer.diretorio_compartilhado(diretorio_compartilhado)
+    peer.set_diretorio_compartilhado(diretorio_compartilhado)
     #arquivos = listar_arquivos(diretorio_compartilhado)
     #print("Parametros Validos")
 
@@ -130,7 +128,7 @@ def sair(peer):
         if conn:
             peer.send_message(peer_conhecido[0], peer_conhecido[1], message)
     peer.close_all_sockets()
-    
+
 def menu(peer):
     while True:
         print("Escolha um comando:")

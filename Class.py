@@ -9,8 +9,42 @@ class Clock:
         self.clock += 1
         print(f"=> Atualizando relogio para {self.clock}")
 
-
 class Peer:
+    """
+    Peer class represents a node in a peer-to-peer (P2P) network. It handles communication, peer management, 
+    and file sharing functionalities.
+    Attributes:
+        host (str): The IP address of the peer.
+        port (int): The port number the peer listens on.
+        clock (Clock): Logical clock for tracking events.
+        server (socket.socket): The server socket for accepting connections.
+        peers (list): List of active peer connections (socket objects).
+        peers_conhecidos (list): List of known peers with their status. Each peer is represented as 
+            [ip_address, port, status].
+        vizinhos_arquivo (str): Path to the file storing known peers.
+        diretorio_compartilhado (str): Path to the shared directory.
+    Methods:
+        start_server():
+            Starts the server to accept incoming peer connections.
+        connect_to_peer(host, port):
+            Connects to another peer and starts listening to it.
+        tratar_mensagem(mensagem, conn):
+            Processes incoming messages and handles different message types.
+        send_message(host, port, message, timeout=5):
+            Sends a message to a specific peer and handles the response.
+        reply(message, conn):
+            Sends a reply message to a specific connection.
+        handle_peer(conn, addr):
+            Handles communication with a connected peer.
+        listen_to_peer(conn):
+            Listens for incoming messages from a connected peer.
+        add_peer(peer):
+            Adds a new peer to the list of known peers.
+        escrever_peers(peers, vizinhos_arquivo):
+            Writes the list of known peers to a file.
+        close_all_sockets():
+            Closes all active peer connections and the server socket.
+    """
     def __init__(self, host, port, clock):
         self.host = host
         self.port = port
@@ -24,14 +58,11 @@ class Peer:
 
     # armazena lista de infos sobre os peers conhecidos
     # lista: [endereço de ip, porta, status]
-    def peers_conhecidos(self, peers, vizinhos_arquivo): 
+    def set_peers_conhecidos(self, peers, vizinhos_arquivo): 
         self.peers_conhecidos = peers
         self.vizinhos_arquivo = vizinhos_arquivo
 
-    def add_peer(self, peer):
-        self.peers_conhecidos.append(peer)
-
-    def diretorio_compartilhado(self, diretorio):
+    def set_diretorio_compartilhado(self, diretorio):
         self.diretorio_compartilhado = diretorio
 
     def update_peer_status(self, peer, status):
@@ -77,13 +108,17 @@ class Peer:
         finally:
             self.server.close()
 
-    def escrever_peers(self, peers, vizinhos_arquivo):
-        # sobrescreve o arquivo todo, pois o conteudo da memoria ja foi atualizado corretamente (teoricamente)
-        # se fosse adicionar apenas os novos, teria que fazer checagem se ja existe e add apenas os novos, entao assim parece mais simples
-        with open(vizinhos_arquivo, "w") as f:
-            for peer in peers:
-                f.write(f"{peer[0]}:{peer[1]}\n")
-                #print(f"Adicionando peer {peer[0]}:{peer[1]}")
+    def connect_to_peer(self, host, port):
+        conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            conn.connect((host, int(port)))
+            self.peers.append(conn)
+            threading.Thread(target=self.listen_to_peer, args=(conn,)).start()
+            #print(f"Conectado ao peer {host}:{port}")
+            return True
+        except ConnectionRefusedError:
+            #print(f"Falha ao conectar ao peer {host}:{port}")
+            return False
 
     def tratar_mensagem(self, mensagem, conn):
         if not "RETURN" in mensagem:
@@ -95,7 +130,7 @@ class Peer:
 
                 if partes[2] == "HELLO":
                     mensagem = f"{self.host}:{self.port} {self.clock.clock} RETURN_HELLO"
-                    self.broadcast(mensagem, conn)
+                    self.reply(mensagem, conn)
                     # verifica se o peer é conhecido e adiciona caso n seja
                     peer_found = False
                     for peer in self.peers_conhecidos:
@@ -108,7 +143,7 @@ class Peer:
 
                 elif partes[2] == "GET_PEERS":
                     mensage = f"{self.host}:{self.port} {self.clock.clock} PEER_LIST {len(self.peers_conhecidos)} {self.get_peers_conhecidos_formatado()}"
-                    self.broadcast(mensage, conn)
+                    self.reply(mensage, conn)
                     peer_found = False
                     for peer in self.peers_conhecidos:
                         if peer[0] == ip[0] and peer[1] == int(ip[1]):
@@ -137,7 +172,7 @@ class Peer:
                             print("entrou")
                             peer = self.update_peer_status(peer, "OFFLINE")
                             mensage = f"{self.host}:{self.port} {self.clock.clock} RETURN_BYE"
-                            self.broadcast(mensage, conn)
+                            self.reply(mensage, conn)
         else:
             partes = mensagem.strip().split(" ")
             ip = partes[0].split(":")
@@ -147,55 +182,6 @@ class Peer:
                         if peer[0] == ip[0] and peer[1] == int(ip[1]):
                             peer = self.update_peer_status(peer, "ONLINE")
                             break
-
-    def handle_peer(self, conn, addr):
-        self.peers.append(conn)
-        try:
-            while True:
-                data = conn.recv(1024).decode()
-                if not data:
-                    break
-                self.tratar_mensagem(data, conn)
-        except ConnectionResetError:
-            print(f"Conexão perdida com {addr}")
-        finally:
-            conn.close()
-            self.peers.remove(conn)
-
-    def broadcast(self, message, conn):
-        for peer in self.peers:
-            if peer == conn:
-                try:
-                    peer.sendall(message.encode())
-                except (BrokenPipeError, ConnectionResetError):
-                    self.peers.remove(peer)
-
-    def connect_to_peer(self, host, port):
-        conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            conn.connect((host, int(port)))
-            self.peers.append(conn)
-            threading.Thread(target=self.listen_to_peer, args=(conn,)).start()
-            #print(f"Conectado ao peer {host}:{port}")
-            return True
-        except ConnectionRefusedError:
-            #print(f"Falha ao conectar ao peer {host}:{port}")
-            return False
-
-    def listen_to_peer(self, conn):
-        try:
-            while True:
-                data = conn.recv(1024).decode()
-                
-                if data:
-                    self.tratar_mensagem(data, conn)
-        except ConnectionResetError:
-            print("Conexão com o peer foi encerrada.")
-        finally:
-            conn.close()
-            if conn in self.peers:
-                self.peers.remove(conn)
-
 
     def send_message(self, host, port, message, timeout=5):
         self.clock.incrementClock() # incrementa o clock
@@ -220,6 +206,53 @@ class Peer:
                 self.peers.remove(peer)
         return None
     
+    def reply(self, message, conn):
+        for peer in self.peers:
+            if peer == conn:
+                try:
+                    peer.sendall(message.encode())
+                except (BrokenPipeError, ConnectionResetError):
+                    self.peers.remove(peer)
+
+    def handle_peer(self, conn, addr):
+        self.peers.append(conn)
+        try:
+            while True:
+                data = conn.recv(1024).decode()
+                if not data:
+                    break
+                self.tratar_mensagem(data, conn)
+        except ConnectionResetError:
+            print(f"Conexão perdida com {addr}")
+        finally:
+            conn.close()
+            self.peers.remove(conn)
+
+    def listen_to_peer(self, conn):
+        try:
+            while True:
+                data = conn.recv(1024).decode()
+                
+                if data:
+                    self.tratar_mensagem(data, conn)
+        except ConnectionResetError:
+            print("Conexão com o peer foi encerrada.")
+        finally:
+            conn.close()
+            if conn in self.peers:
+                self.peers.remove(conn)
+
+    def add_peer(self, peer):
+        self.peers_conhecidos.append(peer)
+
+    def escrever_peers(self, peers, vizinhos_arquivo):
+        # sobrescreve o arquivo todo, pois o conteudo da memoria ja foi atualizado corretamente (teoricamente)
+        # se fosse adicionar apenas os novos, teria que fazer checagem se ja existe e add apenas os novos, entao assim parece mais simples
+        with open(vizinhos_arquivo, "w") as f:
+            for peer in peers:
+                f.write(f"{peer[0]}:{peer[1]}\n")
+                #print(f"Adicionando peer {peer[0]}:{peer[1]}")
+
     def close_all_sockets(self):
         """Closes all active sockets and the server socket."""
         for peer in self.peers:
