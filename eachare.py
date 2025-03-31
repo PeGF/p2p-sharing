@@ -40,35 +40,34 @@ def validar_entrada(clock):
     vizinhos_arquivo = sys.argv[2]
     diretorio_compartilhado = sys.argv[3]
 
-    # endereco
+    #endereco
     if ":" not in endereco_porta:
         print("Formato: <endereço>:<porta>")
         sys.exit(1)
 
     endereco, porta = endereco_porta.split(":")
     
-    # porta
+    #porta
     if not porta.isdigit():
         print("Formato da porta incorreto")
         sys.exit(1)
 
     peer = Peer(endereco, int(porta), clock)
 
-    # arquivo vizinhos
+    #arquivo vizinhos
     if not os.path.isfile(vizinhos_arquivo):
         print(f"Arquivo de vizinhos '{vizinhos_arquivo}' não encontrado")
         sys.exit(1)
 
     peer.peers_conhecidos(listar_peers(vizinhos_arquivo))
 
-    # diretorio compartilhafdo
+    #diretorio compartilhafdo
     if not os.path.isdir(diretorio_compartilhado):
         print(f"Diretorio {diretorio_compartilhado} nao encontrado")
         sys.exit(1)
     peer.diretorio_compartilhado(diretorio_compartilhado)
-    # arquivos = listar_arquivos(diretorio_compartilhado)
-
-    # print("Parametros Validos")
+    #arquivos = listar_arquivos(diretorio_compartilhado)
+    #print("Parametros Validos")
 
     return peer
 
@@ -91,15 +90,19 @@ def obter_comando(n, zero:bool):
 def show_peers(peer):
     print("Lista de peers:")
     print("[0] voltar para o menu anterior")
-    for peer_conhecido in peer.peers_conhecidos:
-        print(f"[{peer.peers_conhecidos.index(peer_conhecido) + 1}] {peer_conhecido[0]}:{peer_conhecido[1]} {peer_conhecido[2]}")
+    peers_filtrados = [
+        peer_conhecido for peer_conhecido in peer.peers_conhecidos
+        if peer_conhecido[0] != peer.get_host() or peer_conhecido[1] != peer.get_port()
+    ]
+    for index, peer_conhecido in enumerate(peers_filtrados, start=1):
+        print(f"[{index}] {peer_conhecido[0]}:{peer_conhecido[1]} {peer_conhecido[2]}")
 
-    comando = obter_comando(len(peer.peers_conhecidos), True)
+    comando = obter_comando(len(peers_filtrados), True)
 
     if comando == 0:
         return
 
-    peer_selecionado = peer.peers_conhecidos[comando - 1]
+    peer_selecionado = peers_filtrados[comando - 1]
     if peer_selecionado[2] != "ONLINE":
         conn = peer.connect_to_peer(peer_selecionado[0], peer_selecionado[1])
         if conn:
@@ -107,7 +110,7 @@ def show_peers(peer):
             peer.send_message(peer_selecionado[0], peer_selecionado[1], message)
             
             try:
-                peer.peers[-1].settimeout(4)  # Define um timeout de 3 segundos para a conexão mais recente
+                peer.peers[-1].settimeout(4)  # Define um timeout de 4 segundos para a conexão mais recente
                 resposta = peer.peers[-1].recv(1024).decode()  # Aguarda uma resposta de até 1024 bytes e decodifica
                 if "HELLO" in resposta:
                     peer_selecionado = peer.update_peer_status(peer_selecionado, "ONLINE")

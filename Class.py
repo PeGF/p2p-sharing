@@ -30,6 +30,12 @@ class Peer:
             print(f"Atualizando peer {peer[0]}:{peer[1]} status {peer[2]}")
         return peer
     
+    def get_host(self):
+        return self.host
+    
+    def get_port(self):
+        return self.port
+    
     def get_peers_conhecidos(self):
         return self.peers_conhecidos
     
