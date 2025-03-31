@@ -24,8 +24,9 @@ class Peer:
 
     # armazena lista de infos sobre os peers conhecidos
     # lista: [endereço de ip, porta, status]
-    def peers_conhecidos(self, peers): 
+    def peers_conhecidos(self, peers, vizinhos_arquivo): 
         self.peers_conhecidos = peers
+        self.vizinhos_arquivo = vizinhos_arquivo
 
     def add_peer(self, peer):
         self.peers_conhecidos.append(peer)
@@ -44,7 +45,7 @@ class Peer:
     
     def get_port(self):
         return self.port
-    
+
     def get_peers_conhecidos(self):
         return self.peers_conhecidos
     
@@ -76,6 +77,14 @@ class Peer:
             print("Servidor encerrado.")
         finally:
             self.server.close()
+
+    def escrever_peers(self, peers, vizinhos_arquivo):
+        # sobrescreve o arquivo todo, pois o conteudo da memoria ja foi atualizado corretamente (teoricamente)
+        # se fosse adicionar apenas os novos, teria que fazer checagem se ja existe e add apenas os novos, entao assim parece mais simples
+        with open(vizinhos_arquivo, "w") as f:
+            for peer in peers:
+                f.write(f"{peer[0]}:{peer[1]}\n")
+                #print(f"Adicionando peer {peer[0]}:{peer[1]}")
 
     def tratar_mensagem(self, mensagem, conn):
         if not "RETURN" in mensagem:
@@ -121,11 +130,13 @@ class Peer:
                                 break
                         if not conhecido:
                             self.add_peer([peers_recebidos[0], int(peers_recebidos[1]), peers_recebidos[2]])
-                
+                    self.escrever_peers(self.get_peers_conhecidos(), self.vizinhos_arquivo)
                 elif partes[2] == "BYE":
                     for peer in self.peers_conhecidos:
                         if peer[0] == ip[0] and peer[1] == int(ip[1]):
                             peer = self.update_peer_status(peer, "OFFLINE")
+                            mensage = f"{self.host}:{self.port} {self.clock.clock} RETURN_BYE"
+                            self.broadcast(mensage, conn)
         else:
             partes = mensagem.strip().split(" ")
             ip = partes[0].split(":")

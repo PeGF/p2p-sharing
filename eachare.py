@@ -20,13 +20,7 @@ def listar_peers(vizinhos_arquivo):
             print(f"Adicionando novo peer {endereco}:{porta} status OFFLINE")
     return peers
 
-def escrever_peers(peers, vizinhos_arquivo):
-    # sobrescreve o arquivo todo, pois o conteudo da memoria ja foi atualizado corretamente (teoricamente)
-    # se fosse adicionar apenas os novos, teria que fazer checagem se ja existe e add apenas os novos, entao assim parece mais simples
-    with open(vizinhos_arquivo, "w") as f:
-        for peer in peers:
-            f.write(f"{peer[0]}:{peer[1]}\n")
-            #print(f"Adicionando peer {peer[0]}:{peer[1]}")
+
 
 def validar_entrada(clock):
     if len(sys.argv) != 4:
@@ -56,7 +50,7 @@ def validar_entrada(clock):
         print(f"Arquivo de vizinhos '{vizinhos_arquivo}' não encontrado")
         sys.exit(1)
 
-    peer.peers_conhecidos(listar_peers(vizinhos_arquivo))
+    peer.peers_conhecidos(listar_peers(vizinhos_arquivo), vizinhos_arquivo)
 
     #diretorio compartilhafdo
     if not os.path.isdir(diretorio_compartilhado):
@@ -116,7 +110,27 @@ def get_peers(peer):
         else:
             peer.update_peer_status(peer_conhecido, "OFFLINE")
 
-
+def sair(peer):
+    print("Saindo...")
+    peers_filtrados = [
+        peer_conhecido for peer_conhecido in peer.peers_conhecidos
+        if (peer_conhecido[0] != peer.get_host() or peer_conhecido[1] != peer.get_port()) and peer_conhecido[2] != "OFFLINE"
+    ]
+    peers_desconectados = []
+    message = f"BYE"
+    for peer_conhecido in peers_filtrados:
+        for peer_conectado in peer.peers:
+            ip = peer_conectado.getpeername()
+            if ip[0] == peer_conhecido[0] and ip[1] == peer_conhecido[1]:
+                peer.send_message(peer_conhecido[0], peer_conhecido[1], message)
+            else:
+                peers_desconectados.append(peer_conhecido)
+    for peer in peers_desconectados:
+        conn = peer.connect_to_peer(peer_conhecido[0], peer_conhecido[1])
+        if conn:
+            peer.send_message(peer_conhecido[0], peer_conhecido[1], message)
+    peer.close_all_sockets()
+    
 def menu(peer):
     while True:
         print("Escolha um comando:")
@@ -147,11 +161,8 @@ def menu(peer):
             case 8:
                 print("8")
             case 9:
-                print("Saindo...")
-                for peer in peer.peers_conhecidos:
-                    if peer[2] == "ONLINE":
-                        peer.send_message(peer[0], peer[1], "BYE")
-                return
+                sair(peer)
+                break
 def main():
     clock = Clock()
     config = validar_entrada(clock)
