@@ -8,7 +8,7 @@ class Peer:
         self.clock = clock
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((host, port))
-        self.server.listen(5)
+        self.server.listen(10)
         self.peers = []
         threading.Thread(target=self.start_server).start()
         print(f"Peer iniciado em {host}:{port}")

@@ -80,11 +80,11 @@ def obter_comando(n, zero:bool):
                 pass
     return comando_escolhido
 
-def show_peers(clock, peer):
+def show_peers(peer):
     print("Lista de peers:")
     print("[0] voltar para o menu anterior")
-    for peer in peer.peers_conhecidos:
-        print(f"[{peer.peers_conhecidos.index(peer) + 1}] {peer[0]}:{peer[1]} {peer[2]}")
+    for peer_conhecido in peer.peers_conhecidos:
+        print(f"[{peer.peers_conhecidos.index(peer_conhecido) + 1}] {peer_conhecido[0]}:{peer_conhecido[1]} {peer_conhecido[2]}")
 
     comando = obter_comando(len(peer.peers_conhecidos), True)
 
@@ -108,8 +108,14 @@ def show_peers(clock, peer):
             except Exception as e:
                 print(f"Erro ao esperar resposta de {peer_selecionado[0]}:{peer_selecionado[1]} - {e}")
 
+def get_peers(peer):
+    for peer in peer.peers_conhecidos:
+        conn = peer.connect_to_peer(peer[0], peer[1])
+        if conn:
+            message = f"GET_PEERS"
+            peer.send_message(peer[0], peer[1], message)
 
-def menu(clock, peer):
+def menu(peer):
     while True:
         print("Escolha um comando:")
         print("[1] Listar peers")
@@ -122,7 +128,7 @@ def menu(clock, peer):
         comando = obter_comando(9, False)
         match comando:
             case 1:
-                show_peers(clock, peer)
+                show_peers(peer)
             case 2:
                 print("2")	
             case 3:
@@ -147,7 +153,7 @@ def menu(clock, peer):
 def main():
     clock = Clock()
     config = validar_entrada(clock)
-    menu(clock, config)
+    menu(config)
     return
 
 if __name__ == "__main__":
