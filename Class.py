@@ -10,11 +10,17 @@ class Peer:
         self.server.bind((host, port))
         self.server.listen(5)
         self.peers = []
-        threading.Thread(target=self.start_server, daemon=True).start()
+        threading.Thread(target=self.start_server).start()
         print(f"Peer iniciado em {host}:{port}")
 
     def peers_conhecidos(self, peers):
         self.peers_conhecidos = peers
+
+    def add_peer(self, peer):
+        self.peers_conhecidos.append(peer)
+
+    def diretorio_compartilhado(self, diretorio):
+        self.diretorio_compartilhado = diretorio
 
     def update_peer_status(self, peer, status):
         peer[2] = status
@@ -117,6 +123,7 @@ class Peer:
             if client in self.peers:
                 self.peers.remove(client)
 
+
     def send_message(self, host, port, message):
         self.clock.incrementClock() # incrementa o clock
         # host, porta e clock
@@ -143,28 +150,3 @@ class Peer:
             self.server.close()
         except Exception as e:
             print(f"Erro ao fechar o servidor: {e}")
-        threading._shutdown()
-
-    def close_connection(self, host=None, port=None):
-        
-        # Fecha a conexão com o peer específico, se fornecido
-        if host and port:
-            for peer in self.peers:
-                try:
-                    if peer.getpeername() == (host, port):
-                        peer.close()
-                        self.peers.remove(peer)
-                        print(f"Conexão com {host}:{port} fechada.")
-                        break
-                except Exception as e:
-                    print(f"Erro ao fechar conexão com {host}:{port}: {e}")
-
-        # Encerra o servidor e limpa todas as conexões
-        try:
-            for peer in self.peers:
-                peer.close()
-            self.peers.clear()
-            self.server.close()
-            print("Servidor encerrado.")
-        except Exception as e:
-            print(f"Erro ao encerrar o servidor: {e}")

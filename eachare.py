@@ -5,10 +5,6 @@ import threading
 from clock import Clock
 from Class import Peer
 
-PEER = 0
-PEERS = 1
-ARQUIVOS = 2
-
 def listar_arquivos(diretorio_compartilhado):
     arquivos = [f for f in os.listdir(diretorio_compartilhado) if os.path.isfile(os.path.join(diretorio_compartilhado, f))]
     # print("Arquivos:")
@@ -16,7 +12,7 @@ def listar_arquivos(diretorio_compartilhado):
     for arquivo in arquivos:
         print(f"{arquivo}")
         print()
-    #return arquivos
+    return arquivos
 
 def listar_peers(vizinhos_arquivo):
     peers = []
@@ -48,7 +44,7 @@ def validar_entrada(clock):
         print("Formato da porta incorreto")
         sys.exit(1)
 
-    peer = Peer(endereco, int(porta),clock)
+    peer = Peer(endereco, int(porta), clock)
 
     # arquivo vizinhos
     if not os.path.isfile(vizinhos_arquivo):
@@ -61,13 +57,12 @@ def validar_entrada(clock):
     if not os.path.isdir(diretorio_compartilhado):
         print(f"Diretorio {diretorio_compartilhado} nao encontrado")
         sys.exit(1)
-
+    peer.diretorio_compartilhado(diretorio_compartilhado)
     # arquivos = listar_arquivos(diretorio_compartilhado)
 
     # print("Parametros Validos")
 
-    config= [peer, diretorio_compartilhado]
-    return config
+    return peer
 
 def obter_comando(n, zero:bool):
     comando_escolhido = ""
@@ -85,47 +80,36 @@ def obter_comando(n, zero:bool):
                 pass
     return comando_escolhido
 
-def show_peers(clock, config):
+def show_peers(clock, peer):
     print("Lista de peers:")
     print("[0] voltar para o menu anterior")
-    for peer in config[PEER].peers_conhecidos:
-        print(f"[{config[PEER].peers_conhecidos.index(peer) + 1}] {peer[0]}:{peer[1]} {peer[2]}")
+    for peer in peer.peers_conhecidos:
+        print(f"[{peer.peers_conhecidos.index(peer) + 1}] {peer[0]}:{peer[1]} {peer[2]}")
 
-    comando = obter_comando(len(config[PEER].peers_conhecidos), True)
+    comando = obter_comando(len(peer.peers_conhecidos), True)
 
     if comando == 0:
         return
 
-    peer_selecionado = config[PEER].peers_conhecidos[comando - 1]
+    peer_selecionado = peer.peers_conhecidos[comando - 1]
     if peer_selecionado[2] != "ONLINE":
-        conn = config[PEER].connect_to_peer(peer_selecionado[0], peer_selecionado[1])
+        conn = peer.connect_to_peer(peer_selecionado[0], peer_selecionado[1])
         if conn:
             message = f"HELLO"
-            config[PEER].send_message(peer_selecionado[0], peer_selecionado[1], message)
+            peer.send_message(peer_selecionado[0], peer_selecionado[1], message)
             
             try:
-                config[PEER].peers[-1].settimeout(3)
-                resposta = config[PEER].peers[-1].recv(1024).decode()
+                peer.peers[-1].settimeout(3)
+                resposta = peer.peers[-1].recv(1024).decode()
                 if "HELLO" in resposta:
-                    peer_selecionado = config[PEER].update_peer_status(peer_selecionado, "ONLINE")
+                    peer_selecionado = peer.update_peer_status(peer_selecionado, "ONLINE")
             except socket.timeout:
                 print(f"{peer_selecionado[0]}:{peer_selecionado[1]} não respondeu ao HELLO (timeout).")
             except Exception as e:
                 print(f"Erro ao esperar resposta de {peer_selecionado[0]}:{peer_selecionado[1]} - {e}")
 
-def desconectar_peers(config):
-    for peer in config[PEER].peers_conhecidos:
-        if peer[2] == "ONLINE":
-            try:
-                config[PEER].send_message(peer[0], peer[1], "BYE")
-                print(f"Mensagem 'BYE' enviada para {peer[0]}:{peer[1]}")
-            except Exception as e:
-                print(f"Erro ao enviar 'BYE' para {peer[0]}:{peer[1]}: {e}")
 
-    # Encerra todas as conexões e o servidor
-    config[PEER].close_all_sockets()
-
-def menu(clock, config):
+def menu(clock, peer):
     while True:
         print("Escolha um comando:")
         print("[1] Listar peers")
@@ -138,28 +122,28 @@ def menu(clock, config):
         comando = obter_comando(9, False)
         match comando:
             case 1:
-                show_peers(clock, config)
+                show_peers(clock, peer)
             case 2:
                 print("2")	
             case 3:
-                listar_arquivos(config[1])
+                listar_arquivos(peer.diretorio_compartilhado)
             case 4:
                 print("3")
             case 5:
-                print(config)
-                print(config)
+                print(peer)
+                print(peer)
             case 6:
-                print(config[PEER])
+                print(peer)
             case 7:
-                print(config[PEER].peers_conhecidos)
+                print(peer.peers_conhecidos)
             case 8:
                 print("8")
             case 9:
                 print("Saindo...")
-                desconectar_peers(config)
-                print("Threads ativas:", threading.enumerate())
-                sys.exit(0)
-                break
+                for peer in peer.peers_conhecidos:
+                    if peer[2] == "ONLINE":
+                        peer.send_message(peer[0], peer[1], "BYE")
+                return
 def main():
     clock = Clock()
     config = validar_entrada(clock)
