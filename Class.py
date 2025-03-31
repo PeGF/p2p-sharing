@@ -39,6 +39,12 @@ class Peer:
     def get_peers_conhecidos(self):
         return self.peers_conhecidos
     
+    def get_peers_conhecidos_formatado(self):
+        result = ""
+        for peer in self.peers_conhecidos:
+            result += f"{peer[0]}:{peer[1]}:{peer[2]}:0 "
+        return result.strip()
+    
     def get_peer_status(self, ip, port):
         for peer in self.get_peers_conhecidos():
             if peer[0] == ip and peer[1] == port:
@@ -69,6 +75,7 @@ class Peer:
             partes = mensagem.strip().split(" ")
             ip = partes[0].split(":")
             if len(partes) >= 3:
+
                 if partes[2] == "HELLO":
                     mensagem = f"{self.host}:{self.port} {self.clock.clock} RETURN_HELLO"
                     self.broadcast(mensagem, conn)
@@ -81,6 +88,31 @@ class Peer:
                             break
                     if not peer_found:
                         self.add_peer([ip[0], int(ip[1]), "ONLINE"])
+
+                elif partes[2] == "GET_PEERS":
+                    mensage = f"{self.host}:{self.port} {self.clock.clock} PEER_LIST {len(self.peers_conhecidos)} {self.get_peers_conhecidos_formatado()}"
+                    self.broadcast(mensage, conn)
+                    peer_found = False
+                    for peer in self.peers_conhecidos:
+                        if peer[0] == ip[0] and peer[1] == int(ip[1]):
+                            peer_found = True
+                            peer = self.update_peer_status(peer, "ONLINE")
+                            break
+                    if not peer_found:
+                        self.add_peer([ip[0], int(ip[1]), "ONLINE"])
+                        
+                elif partes[2] == "PEER_LIST":
+                    quant = int(partes[3])
+                    for i in range(quant):
+                        conhecido = False
+                        peers_recebidos = partes[4 + i].split(":")
+                        for peer in self.peers_conhecidos:
+                            if peer[0] == peers_recebidos[0] and peer[1] == int(peers_recebidos[1]):
+                                conhecido = True
+                                break
+                        if not conhecido:
+                            self.add_peer([peers_recebidos[0], int(peers_recebidos[1]), peers_recebidos[2]])
+                
                 elif partes[2] == "BYE":
                     for peer in self.peers_conhecidos:
                         if peer[0] == ip[0] and peer[1] == int(ip[1]):
@@ -109,9 +141,9 @@ class Peer:
             conn.close()
             self.peers.remove(conn)
 
-    def broadcast(self, message, sender_conn):
+    def broadcast(self, message, conn):
         for peer in self.peers:
-            if peer == sender_conn:
+            if peer == conn:
                 try:
                     peer.sendall(message.encode())
                 except (BrokenPipeError, ConnectionResetError):
@@ -160,7 +192,6 @@ class Peer:
                     response = peer.recv(1024).decode()  # Receive and decode the response
                     
                     # Handle the response
-                    print(f'Resposta recebida de {host}:{port}: "{response.strip()}"')
                     self.tratar_mensagem(response, peer)
             except socket.timeout:
                 print(f"Timeout ao enviar mensagem para {host}:{port}")

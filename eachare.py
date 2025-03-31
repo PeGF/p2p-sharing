@@ -105,15 +105,19 @@ def show_peers(peer):
         peer.connect_to_peer(peers_filtrados[comando - 1][0], peers_filtrados[comando - 1][1])
         peer.send_message(peers_filtrados[comando - 1][0], peers_filtrados[comando - 1][1], "HELLO")
 
-def get_peers(peers):
-    for peer_conhecido in peers.peers_conhecidos:
-        conn = peers.connect_to_peer(peer_conhecido[0], peer_conhecido[1])
+def get_peers(peer):
+    peers_filtrados = [
+        peer_conhecido for peer_conhecido in peer.peers_conhecidos
+        if peer_conhecido[0] != peer.get_host() or peer_conhecido[1] != peer.get_port()
+    ]
+    for peer_conhecido in peers_filtrados:
+        conn = peer.connect_to_peer(peer_conhecido[0], peer_conhecido[1])
         if conn:
             message = f"GET_PEERS"
-            peers.send_message(peer_conhecido[0], peer_conhecido[1], message)
-            peers.update_peer_status(peer_conhecido, "ONLINE")
+            peer.send_message(peer_conhecido[0], peer_conhecido[1], message)
+            peer.update_peer_status(peer_conhecido, "ONLINE")
         else:
-            peers.update_peer_status(peer_conhecido, "OFFLINE")
+            peer.update_peer_status(peer_conhecido, "OFFLINE")
 
 
 def menu(peer):
