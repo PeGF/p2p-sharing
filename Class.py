@@ -9,11 +9,13 @@ class Peer:
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((host, port))
         self.server.listen(10)
-        self.peers = []
+        self.peers = [] # lista de peers conectados ativamente (e status), cada elemento é um objeto de socket
         threading.Thread(target=self.start_server).start()
         print(f"Peer iniciado em {host}:{port}")
 
-    def peers_conhecidos(self, peers):
+    # armazena lista de infos sobre os peers conhecidos
+    # lista: [endereço de ip, porta, status]
+    def peers_conhecidos(self, peers): 
         self.peers_conhecidos = peers
 
     def add_peer(self, peer):
@@ -24,8 +26,24 @@ class Peer:
 
     def update_peer_status(self, peer, status):
         peer[2] = status
-        print(f"Atualizando peer {peer[0]}:{peer[1]} status {peer[2]}")
+        if status == "ONLINE":
+            print(f"Atualizando peer {peer[0]}:{peer[1]} status {peer[2]}")
         return peer
+    
+    def get_peers_conhecidos(self):
+        return self.peers_conhecidos
+    
+    def get_peer_status(self, ip, port):
+        for peer in self.get_peers_conhecidos():
+            if peer[0] == ip and peer[1] == port:
+                return peer[2]  # retorna o status
+        return None  # retorna None se o peer não for encontrado
+    
+    def get_peers(self):
+        return self.peers
+    
+    def get_diretorio_compartilhado(self):
+        return self.diretorio_compartilhado
 
     def start_server(self):
         try:
@@ -89,7 +107,7 @@ class Peer:
             #print(f"Conectado ao peer {host}:{port}")
             return True
         except ConnectionRefusedError:
-            print(f"Falha ao conectar ao peer {host}:{port}")
+            #print(f"Falha ao conectar ao peer {host}:{port}")
             return False
 
     def listen_to_peer(self, client):
