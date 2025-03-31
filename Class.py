@@ -1,6 +1,15 @@
 import socket
 import threading
 
+class Clock:
+    def __init__(self):
+        self.clock = 0
+
+    def incrementClock(self):
+        self.clock += 1
+        print(f"=> Atualizando relogio para {self.clock}")
+
+
 class Peer:
     def __init__(self, host, port, clock):
         self.host = host
@@ -100,7 +109,7 @@ class Peer:
                             break
                     if not peer_found:
                         self.add_peer([ip[0], int(ip[1]), "ONLINE"])
-                        
+
                 elif partes[2] == "PEER_LIST":
                     quant = int(partes[3])
                     for i in range(quant):

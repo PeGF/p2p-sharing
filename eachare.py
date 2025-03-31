@@ -1,9 +1,6 @@
 import sys
 import os
-import socket
-import threading
-from clock import Clock
-from Class import Peer
+from Class import Clock, Peer
 
 def listar_arquivos(diretorio_compartilhado):
     arquivos = [f for f in os.listdir(diretorio_compartilhado) if os.path.isfile(os.path.join(diretorio_compartilhado, f))]
