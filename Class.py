@@ -98,6 +98,8 @@ class Peer:
         return self.diretorio_compartilhado
 
     def start_server(self):
+        #flag pra parar o servidor quando desconectar
+        self.running = True
         try:
             while True:
                 conn, addr = self.server.accept()
@@ -169,10 +171,10 @@ class Peer:
                 elif partes[2] == "BYE":
                     for peer in self.peers_conhecidos:
                         if peer[0] == ip[0] and peer[1] == int(ip[1]):
-                            print("entrou")
+                            #print("entrou")
                             peer = self.update_peer_status(peer, "OFFLINE")
-                            mensage = f"{self.host}:{self.port} {self.clock.clock} RETURN_BYE"
-                            self.reply(mensage, conn)
+                            #mensage = f"{self.host}:{self.port} {self.clock.clock} RETURN_BYE"
+                            #self.reply(mensage, conn)
         else:
             partes = mensagem.strip().split(" ")
             ip = partes[0].split(":")
@@ -184,7 +186,7 @@ class Peer:
                             break
 
     def send_message(self, host, port, message, timeout=5):
-        self.clock.incrementClock() # incrementa o clock
+        self.clock.incrementClock()  # incrementa o clock
         # host, porta e clock
         mensagem_formatada = f"{self.host}:{self.port} {self.clock.clock} {message}\n"
         
@@ -194,11 +196,15 @@ class Peer:
             try:
                 if peer.getpeername() == (host, port):
                     peer.sendall(mensagem_formatada.encode())
-                    # Wait for a response
-                    peer.settimeout(timeout)  # Set a timeout for the response
-                    response = peer.recv(1024).decode()  # Receive and decode the response
                     
-                    # Handle the response
+                    # se a mensagem for "BYE", não espera por resposta
+                    if message == "BYE":
+                        return None
+                    
+                    # espera resposta
+                    peer.settimeout(timeout)
+                    response = peer.recv(1024).decode()  # recebe a resposta
+                    # trata a resposta
                     self.tratar_mensagem(response, peer)
             except socket.timeout:
                 print(f"Timeout ao enviar mensagem para {host}:{port}")

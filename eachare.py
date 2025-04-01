@@ -128,6 +128,7 @@ def sair(peer):
         if conn:
             peer.send_message(peer_conhecido[0], peer_conhecido[1], message)
     peer.close_all_sockets()
+    sys.exit(0)
 
 def menu(peer):
     while True:
@@ -161,6 +162,7 @@ def menu(peer):
             case 9:
                 sair(peer)
                 break
+
 def main():
     clock = Clock()
     config = validar_entrada(clock)
