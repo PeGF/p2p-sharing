@@ -10,41 +10,6 @@ class Clock:
         print(f"=> Atualizando relogio para {self.clock}")
 
 class Peer:
-    """
-    Peer class represents a node in a peer-to-peer (P2P) network. It handles communication, peer management, 
-    and file sharing functionalities.
-    Attributes:
-        host (str): The IP address of the peer.
-        port (int): The port number the peer listens on.
-        clock (Clock): Logical clock for tracking events.
-        server (socket.socket): The server socket for accepting connections.
-        peers (list): List of active peer connections (socket objects).
-        peers_conhecidos (list): List of known peers with their status. Each peer is represented as 
-            [ip_address, port, status].
-        vizinhos_arquivo (str): Path to the file storing known peers.
-        diretorio_compartilhado (str): Path to the shared directory.
-    Methods:
-        start_server():
-            Starts the server to accept incoming peer connections.
-        connect_to_peer(host, port):
-            Connects to another peer and starts listening to it.
-        tratar_mensagem(mensagem, conn):
-            Processes incoming messages and handles different message types.
-        send_message(host, port, message, timeout=5):
-            Sends a message to a specific peer and handles the response.
-        reply(message, conn):
-            Sends a reply message to a specific connection.
-        handle_peer(conn, addr):
-            Handles communication with a connected peer.
-        listen_to_peer(conn):
-            Listens for incoming messages from a connected peer.
-        add_peer(peer):
-            Adds a new peer to the list of known peers.
-        escrever_peers(peers, vizinhos_arquivo):
-            Writes the list of known peers to a file.
-        close_all_sockets():
-            Closes all active peer connections and the server socket.
-    """
     def __init__(self, host, port, clock):
         self.host = host
         self.port = port
@@ -98,13 +63,11 @@ class Peer:
         return self.diretorio_compartilhado
 
     def start_server(self):
-        #flag pra parar o servidor quando desconectar
-        self.running = True
         try:
             while True:
                 conn, addr = self.server.accept()
                 # print(f"Conexão recebida de {addr}")
-                threading.Thread(target=self.handle_peer, args=(conn, addr)).start()
+                threading.Thread(target=self.handle_peer, args=(conn, addr), daemon=True).start()
         except KeyboardInterrupt:
             print("Servidor encerrado.")
         finally:
@@ -171,10 +134,9 @@ class Peer:
                 elif partes[2] == "BYE":
                     for peer in self.peers_conhecidos:
                         if peer[0] == ip[0] and peer[1] == int(ip[1]):
-                            #print("entrou")
                             peer = self.update_peer_status(peer, "OFFLINE")
-                            #mensage = f"{self.host}:{self.port} {self.clock.clock} RETURN_BYE"
-                            #self.reply(mensage, conn)
+                            mensage = f"{self.host}:{self.port} {self.clock.clock} RETURN_BYE"
+                            self.reply(mensage, conn)
         else:
             partes = mensagem.strip().split(" ")
             ip = partes[0].split(":")
@@ -184,9 +146,11 @@ class Peer:
                         if peer[0] == ip[0] and peer[1] == int(ip[1]):
                             peer = self.update_peer_status(peer, "ONLINE")
                             break
+                if partes[2] == "RETRUN_BYE":
+                    pass
 
     def send_message(self, host, port, message, timeout=5):
-        self.clock.incrementClock()  # incrementa o clock
+        self.clock.incrementClock() # incrementa o clock
         # host, porta e clock
         mensagem_formatada = f"{self.host}:{self.port} {self.clock.clock} {message}\n"
         
@@ -196,15 +160,10 @@ class Peer:
             try:
                 if peer.getpeername() == (host, port):
                     peer.sendall(mensagem_formatada.encode())
-                    
-                    # se a mensagem for "BYE", não espera por resposta
-                    if message == "BYE":
-                        return None
-                    
-                    # espera resposta
+
                     peer.settimeout(timeout)
-                    response = peer.recv(1024).decode()  # recebe a resposta
-                    # trata a resposta
+                    response = peer.recv(1024).decode()
+
                     self.tratar_mensagem(response, peer)
             except socket.timeout:
                 print(f"Timeout ao enviar mensagem para {host}:{port}")
@@ -260,7 +219,6 @@ class Peer:
                 #print(f"Adicionando peer {peer[0]}:{peer[1]}")
 
     def close_all_sockets(self):
-        """Closes all active sockets and the server socket."""
         for peer in self.peers:
             try:
                 peer.close()

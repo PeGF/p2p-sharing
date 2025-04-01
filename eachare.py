@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 from Class import Clock, Peer
 
 def listar_arquivos(diretorio_compartilhado):
@@ -32,31 +33,31 @@ def validar_entrada(clock):
     #endereco
     if ":" not in endereco_porta:
         print("Formato: <endereço>:<porta>")
-        sys.exit(1)
+        sys.exit(0)
 
     endereco, porta = endereco_porta.split(":")
     
     #porta
     if not porta.isdigit():
         print("Formato da porta incorreto")
-        sys.exit(1)
-
-    peer = Peer(endereco, int(porta), clock)
+        sys.exit(0)
 
     #arquivo vizinhos
     if not os.path.isfile(vizinhos_arquivo):
         print(f"Arquivo de vizinhos '{vizinhos_arquivo}' não encontrado")
-        sys.exit(1)
-
-    peer.set_peers_conhecidos(listar_peers(vizinhos_arquivo), vizinhos_arquivo)
+        sys.exit(0)
 
     #diretorio compartilhafdo
     if not os.path.isdir(diretorio_compartilhado):
         print(f"Diretorio {diretorio_compartilhado} nao encontrado")
-        sys.exit(1)
-    peer.set_diretorio_compartilhado(diretorio_compartilhado)
+        sys.exit(0)
+    
     #arquivos = listar_arquivos(diretorio_compartilhado)
     #print("Parametros Validos")
+
+    peer = Peer(endereco, int(porta), clock)
+    peer.set_peers_conhecidos(listar_peers(vizinhos_arquivo), vizinhos_arquivo)
+    peer.set_diretorio_compartilhado(diretorio_compartilhado)
 
     return peer
 
@@ -128,7 +129,9 @@ def sair(peer):
         if conn:
             peer.send_message(peer_conhecido[0], peer_conhecido[1], message)
     peer.close_all_sockets()
-    sys.exit(0)
+    # Espera um tempo para poder receber todas as respostas dos peers
+    time.sleep(5)
+    os._exit(1)
 
 def menu(peer):
     while True:
@@ -138,7 +141,7 @@ def menu(peer):
         print("[3] Listar arquivos locais")
         print("[4] Buscar arquivos")
         print("[5] Exibir estatisticas")
-        print("[8] Alterar tamanho de chunk")
+        print("[6] Alterar tamanho de chunk")
         print("[9] Sair")
         comando = obter_comando(9, False)
         match comando:
@@ -149,20 +152,14 @@ def menu(peer):
             case 3:
                 listar_arquivos(peer.diretorio_compartilhado)
             case 4:
-                print("3")
+                print("Não implementado")
             case 5:
-                print(peer)
-                print(peer)
+                print("Não implementado")
             case 6:
-                print(peer)
-            case 7:
-                print(peer.peers_conhecidos)
-            case 8:
-                print("8")
+                print("Não implementado")
             case 9:
                 sair(peer)
                 break
-
 def main():
     clock = Clock()
     config = validar_entrada(clock)
