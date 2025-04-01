@@ -109,6 +109,7 @@ class Peer:
                             break
                     if not peer_found:
                         self.add_peer([ip[0], int(ip[1]), "ONLINE"])
+                        self.escrever_peers(self.get_peers_conhecidos(), self.vizinhos_arquivo)
 
                 elif partes[2] == "GET_PEERS":
                     mensage = f"{self.host}:{self.port} {self.clock.clock} PEER_LIST {len(self.peers_conhecidos)} {self.get_peers_conhecidos_formatado()}"
