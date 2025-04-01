@@ -74,6 +74,10 @@ class Peer:
             self.server.close()
 
     def connect_to_peer(self, host, port):
+        for peer in self.peers:
+            if peer.getpeername() == (host, port):
+                return True
+
         conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             conn.connect((host, int(port)))
@@ -87,8 +91,8 @@ class Peer:
 
     def tratar_mensagem(self, mensagem, conn):
         if not "RETURN" in mensagem:
-            print(f'Mensagem recebida: "{mensagem.strip()}"')
             self.clock.incrementClock()
+            print(f'Mensagem recebida: "{mensagem.strip()}"')
             partes = mensagem.strip().split(" ")
             ip = partes[0].split(":")
             if len(partes) >= 3:
