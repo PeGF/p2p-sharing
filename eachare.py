@@ -16,9 +16,14 @@ def listar_peers(vizinhos_arquivo):
     peers = []
     with open(vizinhos_arquivo, "r") as f:
         for linha in f:
-            endereco, porta = linha.strip().split(":")
-            peers.append([endereco, int(porta), "OFFLINE"])
-            print(f"Adicionando novo peer {endereco}:{porta} status OFFLINE")
+            try:
+                endereco, porta = linha.strip().split(":")
+                if not porta.isdigit():
+                    raise ValueError("Porta não é um número")
+                peers.append([endereco, int(porta), "OFFLINE"])
+                print(f"Adicionando novo peer {endereco}:{porta} status OFFLINE")
+            except ValueError:
+                continue
     return peers
 
 def validar_entrada(clock):
@@ -129,8 +134,8 @@ def sair(peer):
         if conn:
             peer.send_message(peer_conhecido[0], peer_conhecido[1], message)
     peer.close_all_sockets()
-    # Espera um tempo para poder receber todas as respostas dos peers
-    time.sleep(5)
+    
+    time.sleep(5) # Espera um tempo para poder receber todas as respostas dos peers
     os._exit(1)
 
 def menu(peer):
