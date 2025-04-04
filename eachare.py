@@ -103,7 +103,7 @@ def show_peers(peer):
 def get_peers(peer):
     peers_filtrados = [
         peer_conhecido for peer_conhecido in peer.peers_conhecidos
-        if (peer_conhecido[0] != peer.get_host() or peer_conhecido[1] != peer.get_port()) and peer_conhecido[2] != "OFFLINE"
+        if (peer_conhecido[0] != peer.get_host() or peer_conhecido[1] != peer.get_port()) and peer_conhecido[2]
     ]
     for peer_conhecido in peers_filtrados:
         conn = peer.connect_to_peer(peer_conhecido[0], peer_conhecido[1])
