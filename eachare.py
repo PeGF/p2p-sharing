@@ -116,26 +116,23 @@ def get_peers(peer):
 
 def sair(peer):
     print("Saindo...")
+    # Filtra os peers conhecidos que estão ONLINE
     peers_filtrados = [
         peer_conhecido for peer_conhecido in peer.peers_conhecidos
-        if (peer_conhecido[0] != peer.get_host() or peer_conhecido[1] != peer.get_port()) and peer_conhecido[2] != "OFFLINE"
+        if peer_conhecido[0] != peer.get_host() or peer_conhecido[1] != peer.get_port()
     ]
-    peers_desconectados = []
-    message = f"BYE"
+    message = "BYE"
+
+    # Envia a mensagem BYE para cada peer conhecido
     for peer_conhecido in peers_filtrados:
-        for peer_conectado in peer.peers:
-            ip = peer_conectado.getpeername()
-            if ip[0] == peer_conhecido[0] and ip[1] == peer_conhecido[1]:
+        if peer_conhecido[2] == "ONLINE":  # Apenas para peers ONLINE
+            conn = peer.connect_to_peer(peer_conhecido[0], peer_conhecido[1])
+            if conn:
                 peer.send_message(peer_conhecido[0], peer_conhecido[1], message)
-            else:
-                peers_desconectados.append(peer_conhecido)
-    for peer in peers_desconectados:
-        conn = peer.connect_to_peer(peer_conhecido[0], peer_conhecido[1])
-        if conn:
-            peer.send_message(peer_conhecido[0], peer_conhecido[1], message)
-    peer.close_all_sockets()
-    
-    time.sleep(5) # Espera um tempo para poder receber todas as respostas dos peers
+
+    # Fecha o servidor e encerra o programa
+    peer.server.close()
+    time.sleep(5)  # Espera para garantir que as mensagens sejam processadas
     os._exit(1)
 
 def menu(peer):
@@ -165,6 +162,7 @@ def menu(peer):
             case 9:
                 sair(peer)
                 break
+            
 def main():
     clock = Clock()
     config = validar_entrada(clock)

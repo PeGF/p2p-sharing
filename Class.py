@@ -17,8 +17,8 @@ class Peer:
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((host, port))
         self.server.listen(10)
-        self.peers = [] # lista de peers conectados ativamente (e status), cada elemento é um objeto de socket
-        threading.Thread(target=self.start_server).start()
+        # self.peers = [] # lista de peers conectados ativamente (e status), cada elemento é um objeto de socket
+        threading.Thread(target=self.start_server, daemon=True).start()
         print(f"Peer iniciado em {host}:{port}")
 
     # armazena lista de infos sobre os peers conhecidos
@@ -56,8 +56,10 @@ class Peer:
                 return peer[2]  # retorna o status
         return None  # retorna None se o peer não for encontrado
     
+    '''
     def get_peers(self):
         return self.peers
+    '''
     
     def get_diretorio_compartilhado(self):
         return self.diretorio_compartilhado
@@ -66,27 +68,29 @@ class Peer:
         try:
             while True:
                 conn, addr = self.server.accept()
-                # print(f"Conexão recebida de {addr}")
-                threading.Thread(target=self.handle_peer, args=(conn, addr), daemon=True).start()
+                print(f"Conexão recebida de {addr}")
+                try:
+                    # Recebe a mensagem e processa diretamente
+                    data = conn.recv(1024).decode()
+                    if data:
+                        self.tratar_mensagem(data, conn)
+                except ConnectionResetError:
+                    print(f"Conexão perdida com {addr}")
+                finally:
+                    conn.close()  # Fecha a conexão imediatamente após o uso
         except KeyboardInterrupt:
             print("Servidor encerrado.")
         finally:
             self.server.close()
 
     def connect_to_peer(self, host, port):
-        for peer in self.peers:
-            if peer.getpeername() == (host, port):
-                return True
-
-        conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            conn.connect((host, int(port)))
-            self.peers.append(conn)
-            threading.Thread(target=self.listen_to_peer, args=(conn,)).start()
-            #print(f"Conectado ao peer {host}:{port}")
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as conn:
+                conn.connect((host, port))
+            print(f"Conexão bem-sucedida com {host}:{port}")
             return True
         except ConnectionRefusedError:
-            #print(f"Falha ao conectar ao peer {host}:{port}")
+            print(f"Falha ao conectar ao peer {host}:{port}")
             return False
 
     def tratar_mensagem(self, mensagem, conn):
@@ -155,35 +159,32 @@ class Peer:
                     pass
 
     def send_message(self, host, port, message, timeout=5):
-        self.clock.incrementClock() # incrementa o clock
-        # host, porta e clock
+        self.clock.incrementClock()  # Incrementa o clock
         mensagem_formatada = f"{self.host}:{self.port} {self.clock.clock} {message}\n"
-        
         print(f'Encaminhando mensagem "{mensagem_formatada.strip()}" para {host}:{port}')
-        
-        for peer in self.peers:
-            try:
-                if peer.getpeername() == (host, port):
-                    peer.sendall(mensagem_formatada.encode())
 
-                    peer.settimeout(timeout)
-                    response = peer.recv(1024).decode()
+        try:
+            # Cria uma nova conexão temporária
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as conn:
+                conn.settimeout(timeout)
+                conn.connect((host, port))
+                conn.sendall(mensagem_formatada.encode())
 
-                    self.tratar_mensagem(response, peer)
-            except socket.timeout:
-                print(f"Timeout ao enviar mensagem para {host}:{port}")
-            except (BrokenPipeError, ConnectionResetError):
-                self.peers.remove(peer)
-        return None
+                # Recebe a resposta
+                response = conn.recv(1024).decode()
+                self.tratar_mensagem(response, conn)
+        except socket.timeout:
+            print(f"Timeout ao enviar mensagem para {host}:{port}")
+        except (BrokenPipeError, ConnectionResetError) as e:
+            print(f"Erro ao enviar mensagem para {host}:{port}: {e}")
     
     def reply(self, message, conn):
-        for peer in self.peers:
-            if peer == conn:
-                try:
-                    peer.sendall(message.encode())
-                except (BrokenPipeError, ConnectionResetError):
-                    self.peers.remove(peer)
+        try:
+            conn.sendall(message.encode())
+        except (BrokenPipeError, ConnectionResetError):
+            print("Erro ao enviar resposta.")
 
+    '''
     def handle_peer(self, conn, addr):
         self.peers.append(conn)
         try:
@@ -211,6 +212,7 @@ class Peer:
             conn.close()
             if conn in self.peers:
                 self.peers.remove(conn)
+    '''
 
     def add_peer(self, peer):
         self.peers_conhecidos.append(peer)
@@ -223,6 +225,7 @@ class Peer:
                 f.write(f"{peer[0]}:{peer[1]}\n")
                 #print(f"Adicionando peer {peer[0]}:{peer[1]}")
 
+    '''
     def close_all_sockets(self):
         for peer in self.peers:
             try:
@@ -234,3 +237,4 @@ class Peer:
             self.server.close()
         except Exception as e:
             print(f"Erro ao fechar o servidor: {e}")
+    '''
