@@ -94,69 +94,74 @@ class Peer:
             return False
 
     def tratar_mensagem(self, mensagem, conn):
-        if not "RETURN" in mensagem:
-            self.clock.incrementClock()
-            print(f'Mensagem recebida: "{mensagem.strip()}"')
-            partes = mensagem.strip().split(" ")
-            ip = partes[0].split(":")
-            if len(partes) >= 3:
+        # Extrai o valor do relógio da mensagem recebida
+        partes = mensagem.strip().split(" ")
+        if len(partes) >= 2:  # Certifica-se de que há um valor de relógio na mensagem
+            try:
+                clock_mensagem = int(partes[1])  # O valor do relógio está na segunda parte da mensagem
+                # Atualiza o relógio local para o maior valor entre o local e o da mensagem
+                self.clock.clock = max(self.clock.clock, clock_mensagem)
+            except ValueError:
+                print("Erro ao interpretar o valor do relógio na mensagem.")
 
-                if partes[2] == "HELLO":
-                    mensagem = f"{self.host}:{self.port} {self.clock.clock} RETURN_HELLO"
-                    self.reply(mensagem, conn)
-                    # verifica se o peer é conhecido e adiciona caso n seja
-                    peer_found = False
-                    for peer in self.peers_conhecidos:
-                        if peer[0] == ip[0] and peer[1] == int(ip[1]):
-                            peer_found = True
-                            peer = self.update_peer_status(peer, "ONLINE")
-                            break
-                    if not peer_found:
-                        self.add_peer([ip[0], int(ip[1]), "ONLINE"])
-                        self.escrever_peers(self.get_peers_conhecidos(), self.vizinhos_arquivo)
+        # Incrementa o relógio local em 1
+        self.clock.incrementClock()
 
-                elif partes[2] == "GET_PEERS":
-                    mensage = f"{self.host}:{self.port} {self.clock.clock} PEER_LIST {len(self.peers_conhecidos)} {self.get_peers_conhecidos_formatado()}"
-                    self.reply(mensage, conn)
-                    peer_found = False
-                    for peer in self.peers_conhecidos:
-                        if peer[0] == ip[0] and peer[1] == int(ip[1]):
-                            peer_found = True
-                            peer = self.update_peer_status(peer, "ONLINE")
-                            break
-                    if not peer_found:
-                        self.add_peer([ip[0], int(ip[1]), "ONLINE"])
-
-                elif partes[2] == "PEER_LIST":
-                    quant = int(partes[3])
-                    for i in range(quant):
-                        conhecido = False
-                        peers_recebidos = partes[4 + i].split(":")
-                        for peer in self.peers_conhecidos:
-                            if peer[0] == peers_recebidos[0] and peer[1] == int(peers_recebidos[1]):
-                                conhecido = True
-                                break
-                        if not conhecido:
-                            self.add_peer([peers_recebidos[0], int(peers_recebidos[1]), peers_recebidos[2]])
+        # Processa a mensagem normalmente
+        print(f'Mensagem recebida: "{mensagem.strip()}"')
+        ip = partes[0].split(":")
+        if len(partes) >= 3:
+            if partes[2] == "HELLO":
+                mensagem = f"{self.host}:{self.port} {self.clock.clock} RETURN_HELLO"
+                self.reply(mensagem, conn)
+                # verifica se o peer é conhecido e adiciona caso não seja
+                peer_found = False
+                for peer in self.peers_conhecidos:
+                    if peer[0] == ip[0] and peer[1] == int(ip[1]):
+                        peer_found = True
+                        peer = self.update_peer_status(peer, "ONLINE")
+                        break
+                if not peer_found:
+                    self.add_peer([ip[0], int(ip[1]), "ONLINE"])
                     self.escrever_peers(self.get_peers_conhecidos(), self.vizinhos_arquivo)
 
-                elif partes[2] == "BYE":
+            elif partes[2] == "GET_PEERS":
+                mensage = f"{self.host}:{self.port} {self.clock.clock} PEER_LIST {len(self.peers_conhecidos)} {self.get_peers_conhecidos_formatado()}"
+                self.reply(mensage, conn)
+                peer_found = False
+                for peer in self.peers_conhecidos:
+                    if peer[0] == ip[0] and peer[1] == int(ip[1]):
+                        peer_found = True
+                        peer = self.update_peer_status(peer, "ONLINE")
+                        break
+                if not peer_found:
+                    self.add_peer([ip[0], int(ip[1]), "ONLINE"])
+
+            elif partes[2] == "PEER_LIST":
+                quant = int(partes[3])
+                for i in range(quant):
+                    conhecido = False
+                    peers_recebidos = partes[4 + i].split(":")
                     for peer in self.peers_conhecidos:
-                        if peer[0] == ip[0] and peer[1] == int(ip[1]):
-                            peer = self.update_peer_status(peer, "OFFLINE")
-                            mensage = f"{self.host}:{self.port} {self.clock.clock} RETURN_BYE"
-                            self.reply(mensage, conn)
-        else:
-            partes = mensagem.strip().split(" ")
-            ip = partes[0].split(":")
-            if len(partes) >= 3:
-                if partes[2] == "RETURN_HELLO":
-                    for peer in self.peers_conhecidos:
-                        if peer[0] == ip[0] and peer[1] == int(ip[1]):
-                            peer = self.update_peer_status(peer, "ONLINE")
+                        if peer[0] == peers_recebidos[0] and peer[1] == int(peers_recebidos[1]):
+                            conhecido = True
                             break
-                if partes[2] == "RETRUN_BYE":
-                    pass
+                    if not conhecido:
+                        self.add_peer([peers_recebidos[0], int(peers_recebidos[1]), peers_recebidos[2]])
+                self.escrever_peers(self.get_peers_conhecidos(), self.vizinhos_arquivo)
+
+            elif partes[2] == "BYE":
+                for peer in self.peers_conhecidos:
+                    if peer[0] == ip[0] and peer[1] == int(ip[1]):
+                        peer = self.update_peer_status(peer, "OFFLINE")
+                        mensage = f"{self.host}:{self.port} {self.clock.clock} RETURN_BYE"
+                        self.reply(mensage, conn)
+        else:
+            if len(partes) >= 3 and partes[2] == "RETURN_HELLO":
+                for peer in self.peers_conhecidos:
+                    if peer[0] == ip[0] and peer[1] == int(ip[1]):
+                        peer = self.update_peer_status(peer, "ONLINE")
+                        break
 
     def send_message(self, host, port, message, timeout=5):
         self.clock.incrementClock()  # Incrementa o clock
