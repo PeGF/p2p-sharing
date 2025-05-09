@@ -159,6 +159,7 @@ class Peer:
                         peer = self.update_peer_status(peer, "OFFLINE")
                         mensage = f"{self.host}:{self.port} {self.clock.clock} RETURN_BYE"
                         self.reply(mensage, conn)
+
         else:
             if len(partes) >= 3 and partes[2] == "RETURN_HELLO":
                 for peer in self.peers_conhecidos:

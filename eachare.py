@@ -114,6 +114,20 @@ def get_peers(peer):
         else:
             peer.update_peer_status(peer_conhecido, "OFFLINE")
 
+def list_files(peer):
+    peers_filtrados = [
+        peer_conhecido for peer_conhecido in peer.peers_conhecidos
+        if (peer_conhecido[0] != peer.get_host() or peer_conhecido[1] != peer.get_port()) and peer_conhecido[2]
+    ]
+    for peer_conhecido in peers_filtrados:
+        conn = peer.connect_to_peer(peer_conhecido[0], peer_conhecido[1])
+        if conn:
+            message = f"LS"
+            peer.send_message(peer_conhecido[0], peer_conhecido[1], message)
+            peer.update_peer_status(peer_conhecido, "ONLINE")
+        else:
+            peer.update_peer_status(peer_conhecido, "OFFLINE")
+
 def sair(peer):
     print("Saindo...")
     # Filtra os peers conhecidos que estão ONLINE
