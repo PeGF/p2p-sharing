@@ -3,11 +3,17 @@ import threading
 
 class Clock:
     def __init__(self):
-        self.clock = 0
+        self.clock = 0  # Inicializa o relógio lógico com valor 0
 
     def incrementClock(self):
-        self.clock += 1
+        self.clock += 1  # Incrementa o valor do relógio em 1
         print(f"=> Atualizando relogio para {self.clock}")
+
+    def updateClock(self, received_clock):
+        # Atualiza o relógio local para o maior valor entre o local e o recebido
+        self.clock = max(self.clock, received_clock)
+        print(f"=> Relógio atualizado para {self.clock} com base no valor recebido: {received_clock}")
+        self.incrementClock()  # Incrementa o relógio após a atualização
 
 class Peer:
     def __init__(self, host, port, clock):
@@ -100,12 +106,9 @@ class Peer:
             try:
                 clock_mensagem = int(partes[1])  # O valor do relógio está na segunda parte da mensagem
                 # Atualiza o relógio local para o maior valor entre o local e o da mensagem
-                self.clock.clock = max(self.clock.clock, clock_mensagem)
+                self.clock.updateClock(clock_mensagem)
             except ValueError:
                 print("Erro ao interpretar o valor do relógio na mensagem.")
-
-        # Incrementa o relógio local em 1
-        self.clock.incrementClock()
 
         # Processa a mensagem normalmente
         print(f'Mensagem recebida: "{mensagem.strip()}"')
