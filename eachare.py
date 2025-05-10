@@ -28,7 +28,7 @@ def listar_peers(vizinhos_arquivo):
 
 def validar_entrada(clock):
     if len(sys.argv) != 4:
-        print("Formato: python eachare.py <endereço>:<porta> <vizinhos.txt> <diretório_compartilhado>")
+        print("Formato: python3 eachare.py <endereço>:<porta> <vizinhos.txt> <diretório_compartilhado>")
         sys.exit(1)
 
     endereco_porta = sys.argv[1]
@@ -168,7 +168,7 @@ def menu(peer):
             case 3:
                 listar_arquivos(peer.diretorio_compartilhado)
             case 4:
-                print("Não implementado")
+                list_files(peer)
             case 5:
                 print("Não implementado")
             case 6:

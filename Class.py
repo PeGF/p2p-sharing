@@ -1,5 +1,6 @@
 import socket
 import threading
+import os
 
 class Clock:
     def __init__(self):
@@ -9,7 +10,10 @@ class Clock:
         self.clock += 1  # Incrementa o valor do relógio em 1
         print(f"=> Atualizando relogio para {self.clock}")
 
-    def updateClock(self, received_clock):
+    def updateClock(self, received_clock=None):
+        # Se o relógio recebido for None, usa o relógio local
+        if received_clock is None:
+            received_clock = self.clock
         # Atualiza o relógio local para o maior valor entre o local e o recebido
         self.clock = max(self.clock, received_clock)
         print(f"=> Relógio atualizado para {self.clock} com base no valor recebido: {received_clock}")
@@ -23,7 +27,7 @@ class Peer:
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((host, port))
         self.server.listen(10)
-        # self.peers = [] # lista de peers conectados ativamente (e status), cada elemento é um objeto de socket
+        # self.peers = # lista de peers conectados ativamente (e status), cada elemento é um objeto de socket
         threading.Thread(target=self.start_server, daemon=True).start()
         print(f"Peer iniciado em {host}:{port}")
 
@@ -113,7 +117,9 @@ class Peer:
         # Processa a mensagem normalmente
         print(f'Mensagem recebida: "{mensagem.strip()}"')
         ip = partes[0].split(":")
+
         if len(partes) >= 3:
+
             if partes[2] == "HELLO":
                 mensagem = f"{self.host}:{self.port} {self.clock.clock} RETURN_HELLO"
                 self.reply(mensagem, conn)
@@ -160,6 +166,19 @@ class Peer:
                         mensage = f"{self.host}:{self.port} {self.clock.clock} RETURN_BYE"
                         self.reply(mensage, conn)
 
+
+            elif partes[2] == "LS":
+                try:
+                    # lista os arquivos no diretório compartilhado
+                    arquivos = [f for f in os.listdir(self.diretorio_compartilhado) if os.path.isfile(os.path.join(self.diretorio_compartilhado, f))]
+                    # formata a lista de arquivos para o cabecalho
+                    arquivos_formatados = " ".join(arquivos)
+                    mensage = f"{self.host}:{self.port} {self.clock.clock} LS_LIST {len(arquivos)} {arquivos_formatados}"
+                    self.reply(mensage, conn)
+                except FileNotFoundError:
+                    mensage = f"{self.host}:{self.port} {self.clock.clock} Diretório não encontrado"
+                    self.reply(mensage, conn)
+
         else:
             if len(partes) >= 3 and partes[2] == "RETURN_HELLO":
                 for peer in self.peers_conhecidos:
@@ -168,7 +187,7 @@ class Peer:
                         break
 
     def send_message(self, host, port, message, timeout=5):
-        self.clock.incrementClock()  # Incrementa o clock
+        self.clock.updateClock()
         mensagem_formatada = f"{self.host}:{self.port} {self.clock.clock} {message}\n"
         print(f'Encaminhando mensagem "{mensagem_formatada.strip()}" para {host}:{port}')
 
