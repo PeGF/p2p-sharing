@@ -106,8 +106,11 @@ def show_peers(peer):
     if comando == 0:
         return
     else:
-        peer.connect_to_peer(peers_filtrados[comando - 1][0], peers_filtrados[comando - 1][1])
-        peer.send_message(peers_filtrados[comando - 1][0], peers_filtrados[comando - 1][1], "HELLO")
+        conn = peer.connect_to_peer(peers_filtrados[comando - 1][0], peers_filtrados[comando - 1][1])
+        if conn:  # Verifica se a conexão foi bem-sucedida
+            peer.send_message(peers_filtrados[comando - 1][0], peers_filtrados[comando - 1][1], "HELLO")
+        else:
+            return
 
 def get_peers(peer):
     peers_filtrados = [
