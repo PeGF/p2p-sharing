@@ -185,7 +185,7 @@ def menu(peer):
             case 9:
                 sair(peer)
                 break
-            
+
 def main():
     clock = Clock()
     config = validar_entrada(clock)

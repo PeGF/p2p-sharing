@@ -190,8 +190,8 @@ class Peer:
                         break
 
             elif partes[2] == "LS_LIST":
-                print("mensagem LS_LIST recebida")
-                
+                print("fsdjfsdlfjds")
+
         else:
             if len(partes) >= 3 and partes[2] == "RETURN_HELLO":
                 for peer in self.peers_conhecidos:
