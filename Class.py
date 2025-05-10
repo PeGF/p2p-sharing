@@ -78,7 +78,7 @@ class Peer:
         try:
             while True:
                 conn, addr = self.server.accept()
-                print(f"Conexão recebida de {addr}")
+                #print(f"Conexão recebida de {addr}")
                 try:
                     # Recebe a mensagem e processa diretamente
                     data = conn.recv(1024).decode()
@@ -188,6 +188,10 @@ class Peer:
                     if peer[0] == ip[0] and peer[1] == int(ip[1]):
                         peer = self.update_peer_status(peer, "ONLINE")
                         break
+
+            elif partes[2] == "LS_LIST":
+                print("mensagem LS_LIST recebida")
+                
         else:
             if len(partes) >= 3 and partes[2] == "RETURN_HELLO":
                 for peer in self.peers_conhecidos:
