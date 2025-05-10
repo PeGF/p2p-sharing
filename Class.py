@@ -16,7 +16,7 @@ class Clock:
             received_clock = self.clock
         # Atualiza o relógio local para o maior valor entre o local e o recebido
         self.clock = max(self.clock, received_clock)
-        print(f"=> Relógio atualizado para {self.clock} com base no valor recebido: {received_clock}")
+        #print(f"=> Relógio atualizado para {self.clock} com base no valor recebido: {received_clock}")
         self.incrementClock()  # Incrementa o relógio após a atualização
 
 class Peer:
@@ -183,6 +183,11 @@ class Peer:
                     mensage = f"{self.host}:{self.port} {self.clock.clock} Diretório não encontrado"
                     self.reply(mensage, conn)
 
+            elif partes[2] == "RETURN_HELLO":
+                for peer in self.peers_conhecidos:
+                    if peer[0] == ip[0] and peer[1] == int(ip[1]):
+                        peer = self.update_peer_status(peer, "ONLINE")
+                        break
         else:
             if len(partes) >= 3 and partes[2] == "RETURN_HELLO":
                 for peer in self.peers_conhecidos:

@@ -12,9 +12,10 @@ def listar_arquivos(diretorio_compartilhado):
             for f in os.listdir(diretorio_compartilhado)
             if os.path.isfile(os.path.join(diretorio_compartilhado, f))
         ]
-        print("\nArquivos disponíveis:")
+        print("")
         for arquivo, tamanho in arquivos:
             print(f"{arquivo} - {tamanho} bytes")
+            print()
         return arquivos
     except FileNotFoundError:
         print(f"Diretório {diretorio_compartilhado} não encontrado.")
