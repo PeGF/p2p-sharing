@@ -3,14 +3,22 @@ import os
 import time
 from Class import Clock, Peer
 
+# atualizei essa função pra tbm listar o tamanho dos arquivos, só pra ficar mais coerente com a outra parte do código
+# e tbm adicionei um tratamento de erro caso o diretório não exista / nao tenha arquivos
 def listar_arquivos(diretorio_compartilhado):
-    arquivos = [f for f in os.listdir(diretorio_compartilhado) if os.path.isfile(os.path.join(diretorio_compartilhado, f))]
-    # print("Arquivos:")
-    print("")
-    for arquivo in arquivos:
-        print(f"{arquivo}")
-        print()
-    return arquivos
+    try:
+        arquivos = [
+            (f, os.path.getsize(os.path.join(diretorio_compartilhado, f)))
+            for f in os.listdir(diretorio_compartilhado)
+            if os.path.isfile(os.path.join(diretorio_compartilhado, f))
+        ]
+        print("\nArquivos disponíveis:")
+        for arquivo, tamanho in arquivos:
+            print(f"{arquivo} - {tamanho} bytes")
+        return arquivos
+    except FileNotFoundError:
+        print(f"Diretório {diretorio_compartilhado} não encontrado.")
+        return []
 
 def listar_peers(vizinhos_arquivo):
     peers = []

@@ -169,10 +169,14 @@ class Peer:
 
             elif partes[2] == "LS":
                 try:
-                    # lista os arquivos no diretório compartilhado
-                    arquivos = [f for f in os.listdir(self.diretorio_compartilhado) if os.path.isfile(os.path.join(self.diretorio_compartilhado, f))]
-                    # formata a lista de arquivos para o cabecalho
-                    arquivos_formatados = " ".join(arquivos)
+                    # Lista os arquivos no diretório compartilhado com seus tamanhos
+                    arquivos = [
+                        (f, os.path.getsize(os.path.join(self.diretorio_compartilhado, f)))
+                        for f in os.listdir(self.diretorio_compartilhado)
+                        if os.path.isfile(os.path.join(self.diretorio_compartilhado, f))
+                    ]
+                    # Formata a lista de arquivos para o cabeçalho
+                    arquivos_formatados = " ".join([f"{nome}:{tamanho}" for nome, tamanho in arquivos])
                     mensage = f"{self.host}:{self.port} {self.clock.clock} LS_LIST {len(arquivos)} {arquivos_formatados}"
                     self.reply(mensage, conn)
                 except FileNotFoundError:
