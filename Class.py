@@ -106,10 +106,10 @@ class Peer:
     def tratar_mensagem(self, mensagem, conn):
         # Extrai o valor do relógio da mensagem recebida
         partes = mensagem.strip().split(" ")
-        if len(partes) >= 2:  # Certifica-se de que há um valor de relógio na mensagem
+        if len(partes) >= 2:  # ve se tem um valor de relógio na mensagem
             try:
-                clock_mensagem = int(partes[1])  # O valor do relógio está na segunda parte da mensagem
-                # Atualiza o relógio local para o maior valor entre o local e o da mensagem
+                clock_mensagem = int(partes[1])  # o valor do relógio está na segunda parte da mensagem
+                # atualiza o relógio local para o maior valor entre o local e o da mensagem
                 self.clock.updateClock(clock_mensagem)
             except ValueError:
                 print("Erro ao interpretar o valor do relógio na mensagem.")
@@ -186,30 +186,13 @@ class Peer:
 
             elif partes[2] == "LS_LIST":
                 # pega os arquivos
-                #quantidade_arquivos = int(partes[3])
                 arquivos_recebidos = partes[4:]
-
-                # largura das colunas
-                largura_nome = 30
-                largura_tamanho = 10
-                largura_peer = 20
-
-                # cabecalho
-                print()
-                print("Arquivos encontrados na rede:")
-                print()
-                print(f"{'Nome'.center(largura_nome)}|{'Tamanho'.center(largura_tamanho)}|{'Peer'.center(largura_peer)}")
-                print("-" * (largura_nome + largura_tamanho + largura_peer + 2))
-
-                # menu
-                print(f"{'[0] Cancelar'.ljust(largura_nome)}|{' '.ljust(largura_tamanho)}|{' '.ljust(largura_peer)}")
-                for idx, arquivo in enumerate(arquivos_recebidos, start=1):
-                    nome, tamanho = arquivo.split(":")
-                    peer = f"{ip[0]}:{ip[1]}"
-                    print(f"[{idx}] {nome.ljust(largura_nome - len(f'[{idx}] '))}|{tamanho.ljust(largura_tamanho)}|{peer.ljust(largura_peer)}")
-
-                print()
-                print("Digite o numero do arquivo para fazer o download:")
+                escolha = exibir_menu_arquivos(arquivos_recebidos, ip)
+                #print(f"Escolha: {arquivos_recebidos[escolha - 1]}")
+                if escolha == 0:
+                    return
+                
+                
 
 
             elif partes[2] == "RETURN_HELLO":
@@ -305,3 +288,36 @@ class Peer:
         except Exception as e:
             print(f"Erro ao fechar o servidor: {e}")
     '''
+
+def exibir_menu_arquivos(arquivos_recebidos, ip):
+    # larguras do menu
+    largura_nome = 30
+    largura_tamanho = 10
+    largura_peer = 20
+
+    # cabeçalho
+    print()
+    print("Arquivos encontrados na rede:")
+    print()
+    print(f"{'Nome'.center(largura_nome)}|{'Tamanho'.center(largura_tamanho)}|{'Peer'.center(largura_peer)}")
+    print("-" * (largura_nome + largura_tamanho + largura_peer + 2))
+
+    # menu
+    print(f"{'[0] Cancelar'.ljust(largura_nome)}|{' '.ljust(largura_tamanho)}|{' '.ljust(largura_peer)}")
+    for idx, arquivo in enumerate(arquivos_recebidos, start=1):
+        nome, tamanho = arquivo.split(":")
+        peer = f"{ip[0]}:{ip[1]}"
+        print(f"[{idx}] {nome.ljust(largura_nome - len(f'[{idx}] '))}|{tamanho.ljust(largura_tamanho)}|{peer.ljust(largura_peer)}")
+
+    print()
+    print("Digite o numero do arquivo para fazer o download:")
+    
+    # escolha do arquivo
+    escolha = ""
+    while escolha not in range(0, len(arquivos_recebidos) + 1):
+        try:
+            escolha = int(input("> ").strip())
+        except ValueError:
+            pass
+
+    return escolha
