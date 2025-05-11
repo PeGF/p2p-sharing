@@ -183,14 +183,32 @@ class Peer:
                     mensage = f"{self.host}:{self.port} {self.clock.clock} Diretório não encontrado"
                     self.reply(mensage, conn)
 
+
+            elif partes[2] == "LS_LIST":
+                # pega os arquivos
+                #quantidade_arquivos = int(partes[3])
+                arquivos_recebidos = partes[4:]
+
+                # largura das colunas
+                largura_nome = 30
+                largura_tamanho = 10
+                largura_peer = 20
+
+                # cabecalho
+                print(f"{'Nome'.ljust(largura_nome)}|{'Tamanho'.ljust(largura_tamanho)}|{'Peer'.ljust(largura_peer)}")
+                print("-" * (largura_nome + largura_tamanho + largura_peer + 2))
+
+                # menu
+                for arquivo in arquivos_recebidos:
+                    nome, tamanho = arquivo.split(":")
+                    peer = f"{ip[0]}:{ip[1]}"
+                    print(f"{nome.ljust(largura_nome)}|{tamanho.ljust(largura_tamanho)}|{peer.ljust(largura_peer)}")
+
             elif partes[2] == "RETURN_HELLO":
                 for peer in self.peers_conhecidos:
                     if peer[0] == ip[0] and peer[1] == int(ip[1]):
                         peer = self.update_peer_status(peer, "ONLINE")
                         break
-
-            elif partes[2] == "LS_LIST":
-                print("fsdjfsdlfjds")
 
         else:
             if len(partes) >= 3 and partes[2] == "RETURN_HELLO":
