@@ -195,14 +195,22 @@ class Peer:
                 largura_peer = 20
 
                 # cabecalho
-                print(f"{'Nome'.ljust(largura_nome)}|{'Tamanho'.ljust(largura_tamanho)}|{'Peer'.ljust(largura_peer)}")
+                print()
+                print("Arquivos encontrados na rede:")
+                print()
+                print(f"{'Nome'.center(largura_nome)}|{'Tamanho'.center(largura_tamanho)}|{'Peer'.center(largura_peer)}")
                 print("-" * (largura_nome + largura_tamanho + largura_peer + 2))
 
                 # menu
-                for arquivo in arquivos_recebidos:
+                print(f"{'[0] Cancelar'.ljust(largura_nome)}|{' '.ljust(largura_tamanho)}|{' '.ljust(largura_peer)}")
+                for idx, arquivo in enumerate(arquivos_recebidos, start=1):
                     nome, tamanho = arquivo.split(":")
                     peer = f"{ip[0]}:{ip[1]}"
-                    print(f"{nome.ljust(largura_nome)}|{tamanho.ljust(largura_tamanho)}|{peer.ljust(largura_peer)}")
+                    print(f"[{idx}] {nome.ljust(largura_nome - len(f'[{idx}] '))}|{tamanho.ljust(largura_tamanho)}|{peer.ljust(largura_peer)}")
+
+                print()
+                print("Digite o numero do arquivo para fazer o download:")
+
 
             elif partes[2] == "RETURN_HELLO":
                 for peer in self.peers_conhecidos:
