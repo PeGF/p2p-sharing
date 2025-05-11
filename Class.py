@@ -208,6 +208,27 @@ class Peer:
                 else:
                     print("slkdjf")
 
+            elif partes[2] == "FILE":
+
+                nome_arquivo = partes[3]
+                conteudo_codificado = partes[6]
+
+                # transforma em binário
+                conteudo_binario = base64.b64decode(conteudo_codificado)
+
+                # salva o arquivo no diretório compartilhado
+                caminho_arquivo = os.path.join(self.diretorio_compartilhado, nome_arquivo)
+
+                try:
+                    with open(caminho_arquivo, "wb") as arquivo:
+                        arquivo.write(conteudo_binario)
+
+                    print(f"Download do arquivo {nome_arquivo} finalizado.")
+                    print()
+                    
+                except Exception as e:
+                    print(f"Erro ao salvar o arquivo {nome_arquivo}: {e}")
+
             elif partes[2] == "RETURN_HELLO":
                 for peer in self.peers_conhecidos:
                     if peer[0] == ip[0] and peer[1] == int(ip[1]):
