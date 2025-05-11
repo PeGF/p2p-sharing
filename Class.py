@@ -200,7 +200,9 @@ class Peer:
 
             elif partes[2] == "DL":
                 arquivo = partes[3].split(":")[0]
-                mensage = f"{self.host}:{self.port} {self.clock.clock} FILE {arquivo} 0 0"
+                caminho_arquivo = os.path.join(self.diretorio_compartilhado, arquivo)
+                arquivo_codificado = codificar_base64(caminho_arquivo)
+                mensage = f"{self.host}:{self.port} {self.clock.clock} FILE {arquivo} 0 0 {arquivo_codificado}"
                 if conn: 
                     self.reply(mensage, conn)
                 else:
@@ -335,13 +337,13 @@ def exibir_menu_arquivos(arquivos_recebidos, ip):
 
 def codificar_base64(caminho_arquivo):
     try:
-        # Abre o arquivo em modo de leitura binária (baixo nível)
-        with os.open(caminho_arquivo, os.O_RDONLY) as arquivo:
-            # Lê o conteúdo do arquivo
-            conteudo = os.read(arquivo, os.path.getsize(caminho_arquivo))
-            # Codifica o conteúdo em Base64
+        # abre o arquivo em baixo nivel
+        with open(caminho_arquivo, "rb") as arquivo:
+            # le o conteúdo do arquivo
+            conteudo = arquivo.read()
+            # codifica o conteúdo em base64
             conteudo_base64 = base64.b64encode(conteudo)
-            return conteudo_base64.decode('utf-8')  # Retorna como string
+            return conteudo_base64.decode('utf-8')  # retorna como string
     except FileNotFoundError:
         print(f"Arquivo {caminho_arquivo} não encontrado.")
         return None
