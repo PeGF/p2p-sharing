@@ -1,6 +1,7 @@
 import socket
 import threading
 import os
+import base64
 
 class Clock:
     def __init__(self):
@@ -114,8 +115,9 @@ class Peer:
             except ValueError:
                 print("Erro ao interpretar o valor do relógio na mensagem.")
 
-        # Processa a mensagem normalmente
-        print(f'Mensagem recebida: "{mensagem.strip()}"')
+        # só mostra a mensagem se tiver algo nela
+        if mensagem.strip() != "":
+            print(f'Mensagem recebida: "{mensagem.strip()}"')
         ip = partes[0].split(":")
 
         if len(partes) >= 3:
@@ -163,8 +165,8 @@ class Peer:
                 for peer in self.peers_conhecidos:
                     if peer[0] == ip[0] and peer[1] == int(ip[1]):
                         peer = self.update_peer_status(peer, "OFFLINE")
-                        mensage = f"{self.host}:{self.port} {self.clock.clock} RETURN_BYE"
-                        self.reply(mensage, conn)
+                        #mensage = f"{self.host}:{self.port} {self.clock.clock} RETURN_BYE"
+                        #self.reply(mensage, conn)
 
 
             elif partes[2] == "LS":
@@ -187,13 +189,22 @@ class Peer:
             elif partes[2] == "LS_LIST":
                 # pega os arquivos
                 arquivos_recebidos = partes[4:]
-                escolha = exibir_menu_arquivos(arquivos_recebidos, ip)
-                #print(f"Escolha: {arquivos_recebidos[escolha - 1]}")
+                escolha = exibir_menu_arquivos(arquivos_recebidos, (ip[0], ip[1]))
+
                 if escolha == 0:
                     return
-                
-                
+                else:
+                    arquivo_escolhido = arquivos_recebidos[escolha - 1]
+                    mensagem = f"DL {arquivo_escolhido} 0 0"
+                    self.send_message(ip[0], int(ip[1]), mensagem)
 
+            elif partes[2] == "DL":
+                arquivo = partes[3].split(":")[0]
+                mensage = f"{self.host}:{self.port} {self.clock.clock} FILE {arquivo} 0 0"
+                if conn: 
+                    self.reply(mensage, conn)
+                else:
+                    print("Erro")
 
             elif partes[2] == "RETURN_HELLO":
                 for peer in self.peers_conhecidos:
