@@ -204,7 +204,7 @@ class Peer:
                 if conn: 
                     self.reply(mensage, conn)
                 else:
-                    print("Erro")
+                    print("slkdjf")
 
             elif partes[2] == "RETURN_HELLO":
                 for peer in self.peers_conhecidos:
@@ -332,3 +332,19 @@ def exibir_menu_arquivos(arquivos_recebidos, ip):
             pass
 
     return escolha
+
+def codificar_base64(caminho_arquivo):
+    try:
+        # Abre o arquivo em modo de leitura binária (baixo nível)
+        with os.open(caminho_arquivo, os.O_RDONLY) as arquivo:
+            # Lê o conteúdo do arquivo
+            conteudo = os.read(arquivo, os.path.getsize(caminho_arquivo))
+            # Codifica o conteúdo em Base64
+            conteudo_base64 = base64.b64encode(conteudo)
+            return conteudo_base64.decode('utf-8')  # Retorna como string
+    except FileNotFoundError:
+        print(f"Arquivo {caminho_arquivo} não encontrado.")
+        return None
+    except Exception as e:
+        print(f"Erro ao ler ou codificar o arquivo: {e}")
+        return None
