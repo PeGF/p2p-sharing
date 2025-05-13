@@ -21,7 +21,7 @@ def listar_arquivos(diretorio_compartilhado):
         print(f"Diretório {diretorio_compartilhado} não encontrado.")
         return []
 
-def listar_peers(vizinhos_arquivo):
+def listar_peers(vizinhos_arquivo, endereco_atual, porta_atual):
     peers = []
     with open(vizinhos_arquivo, "r") as f:
         for linha in f:
@@ -29,6 +29,12 @@ def listar_peers(vizinhos_arquivo):
                 endereco, porta = linha.strip().split(":")
                 if not porta.isdigit():
                     raise ValueError("Porta não é um número")
+                
+                # Ignora o próprio peer
+                if endereco == endereco_atual and int(porta) == porta_atual:
+                    # print(f"Ignorando o próprio peer {endereco}:{porta}")
+                    continue
+                
                 peers.append([endereco, int(porta), "OFFLINE"])
                 print(f"Adicionando novo peer {endereco}:{porta} status OFFLINE")
             except ValueError:
@@ -70,7 +76,7 @@ def validar_entrada(clock):
     #print("Parametros Validos")
 
     peer = Peer(endereco, int(porta), clock)
-    peer.set_peers_conhecidos(listar_peers(vizinhos_arquivo), vizinhos_arquivo)
+    peer.set_peers_conhecidos(listar_peers(vizinhos_arquivo, endereco, int(porta)), vizinhos_arquivo)
     peer.set_diretorio_compartilhado(diretorio_compartilhado)
 
     return peer
