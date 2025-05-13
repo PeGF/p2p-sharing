@@ -340,12 +340,20 @@ class Peer:
         self.peers_conhecidos.append(peer)
 
     def escrever_peers(self, peers, vizinhos_arquivo):
-        # sobrescreve o arquivo todo, pois o conteudo da memoria ja foi atualizado corretamente (teoricamente)
-        # se fosse adicionar apenas os novos, teria que fazer checagem se ja existe e add apenas os novos, entao assim parece mais simples
-        with open(vizinhos_arquivo, "w") as f:
+        # lê os peers existentes no arquivo
+        try:
+            with open(vizinhos_arquivo, "r") as f:
+                peers_existentes = {line.strip() for line in f.readlines()}
+        except FileNotFoundError:
+            peers_existentes = set()
+
+        # adiciona apenas os novos peers
+        with open(vizinhos_arquivo, "a") as f:
             for peer in peers:
-                f.write(f"{peer[0]}:{peer[1]}\n")
-                #print(f"Adicionando peer {peer[0]}:{peer[1]}")
+                peer_str = f"{peer[0]}:{peer[1]}"
+                if peer_str not in peers_existentes:
+                    f.write(f"{peer_str}\n")
+                    peers_existentes.add(peer_str) 
 
     '''
     def close_all_sockets(self):
