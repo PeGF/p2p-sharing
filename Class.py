@@ -33,10 +33,15 @@ class Peer:
         print(f"Peer iniciado em {host}:{port}")
 
     # armazena lista de infos sobre os peers conhecidos
-    # lista: [endereço de ip, porta, status]
-    def set_peers_conhecidos(self, peers, vizinhos_arquivo): 
-        self.peers_conhecidos = peers
+    # lista: [endereço de ip, porta, status, clock]
+    def set_peers_conhecidos(self, peers, vizinhos_arquivo):
+        self.peers_conhecidos = []
         self.vizinhos_arquivo = vizinhos_arquivo
+        for peer in peers:
+            # formato [ip, porta, status, clock]
+            if len(peer) == 3:
+                peer.append(0)  # adiciona o clock inicial como 0
+            self.peers_conhecidos.append(peer)
 
     def set_diretorio_compartilhado(self, diretorio):
         self.diretorio_compartilhado = diretorio
@@ -58,7 +63,7 @@ class Peer:
     def get_peers_conhecidos_formatado(self):
         result = ""
         for peer in self.peers_conhecidos:
-            result += f"{peer[0]}:{peer[1]}:{peer[2]}:0 "
+            result += f"{peer[0]}:{peer[1]}:{peer[2]}:{peer[3]} "
         return result.strip()
     
     def get_peer_status(self, ip, port):
@@ -112,16 +117,28 @@ class Peer:
                 clock_mensagem = int(partes[1])  # o valor do relógio está na segunda parte da mensagem
                 # atualiza o relógio local para o maior valor entre o local e o da mensagem
                 self.clock.updateClock(clock_mensagem)
+
+                # Atualiza o clock do peer correspondente em self.peers_conhecidos
+                ip_port = partes[0].split(":")  # Extrai o IP e a porta do peer remetente
+                ip = ip_port[0]
+                port = int(ip_port[1])
+
+                for peer in self.peers_conhecidos:
+                    if peer[0] == ip and peer[1] == port:
+                        if clock_mensagem > peer[3]:  # Compara o clock recebido com o salvo
+                            peer[3] = clock_mensagem  # Atualiza o clock salvo
+                            #print(f"clock do peer {ip}:{port} atualizado: {clock_mensagem}")
+                        break
             except ValueError:
                 print("Erro ao interpretar o valor do relógio na mensagem.")
 
         # só mostra a mensagem se tiver algo nela
         if mensagem.strip() != "":
             print(f'Mensagem recebida: "{mensagem.strip()}"')
+
         ip = partes[0].split(":")
 
         if len(partes) >= 3:
-
             if partes[2] == "HELLO":
                 mensagem = f"{self.host}:{self.port} {self.clock.clock} RETURN_HELLO"
                 self.reply(mensagem, conn)
@@ -299,6 +316,7 @@ class Peer:
     '''
 
     def add_peer(self, peer):
+        peer.append(0)
         self.peers_conhecidos.append(peer)
 
     def escrever_peers(self, peers, vizinhos_arquivo):
