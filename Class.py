@@ -170,12 +170,23 @@ class Peer:
                 for i in range(quant):
                     conhecido = False
                     peers_recebidos = partes[4 + i].split(":")
+                    ip_recebido = peers_recebidos[0]
+                    porta_recebida = int(peers_recebidos[1])
+                    status_recebido = peers_recebidos[2]
+                    clock_recebido = int(peers_recebidos[3])  # Clock recebido do peer
+
                     for peer in self.peers_conhecidos:
-                        if peer[0] == peers_recebidos[0] and peer[1] == int(peers_recebidos[1]):
+                        if peer[0] == ip_recebido and peer[1] == porta_recebida:
                             conhecido = True
+                            # Atualiza o clock do peer conhecido com o maior valor
+                            peer[3] = max(peer[3], clock_recebido)
                             break
+
                     if not conhecido:
-                        self.add_peer([peers_recebidos[0], int(peers_recebidos[1]), peers_recebidos[2]])
+                        # Adiciona o peer com o clock recebido
+                        self.add_peer([ip_recebido, porta_recebida, status_recebido, clock_recebido])
+
+                # Salva a lista atualizada de peers conhecidos
                 self.escrever_peers(self.get_peers_conhecidos(), self.vizinhos_arquivo)
 
             elif partes[2] == "BYE":
