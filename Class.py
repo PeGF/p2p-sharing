@@ -180,6 +180,10 @@ class Peer:
                     status_recebido = peers_recebidos[2]
                     clock_recebido = int(peers_recebidos[3])  # Clock recebido do peer
 
+                    if ip_recebido == self.host and porta_recebida == self.port:
+                        # Ignora o próprio peer
+                        continue
+
                     for peer in self.peers_conhecidos:
                         if peer[0] == ip_recebido and peer[1] == porta_recebida:
                             conhecido = True
