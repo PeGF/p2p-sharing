@@ -185,7 +185,8 @@ def menu(peer):
             case 4:
                 list_files(peer)
             case 5:
-                print("Não implementado")
+                # por enquanto apenas pra testar o clock
+                peer.print_peers_conhecidos()
             case 6:
                 print("Não implementado")
             case 9:

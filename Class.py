@@ -46,6 +46,11 @@ class Peer:
     def set_diretorio_compartilhado(self, diretorio):
         self.diretorio_compartilhado = diretorio
 
+    # testar pra ver se o clock tá atualizando direito
+    def print_peers_conhecidos(self):
+        for peer in self.peers_conhecidos:
+            print(f"Peer conhecido: {peer[0]}:{peer[1]} - Status: {peer[2]} - Clock: {peer[3]}")
+
     def update_peer_status(self, peer, status):
         peer[2] = status
         print(f"Atualizando peer {peer[0]}:{peer[1]} status {peer[2]}")
