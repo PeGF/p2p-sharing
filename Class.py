@@ -25,6 +25,7 @@ class Peer:
         self.host = host
         self.port = port
         self.clock = clock
+        self.chunk_size = 256  # Tamanho padrão do chunk
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((host, port))
         self.server.listen(10)
@@ -84,6 +85,15 @@ class Peer:
     
     def get_diretorio_compartilhado(self):
         return self.diretorio_compartilhado
+
+    def get_chunk_size(self):
+        return self.chunk_size
+    
+    def set_chunk_size(self, new_size):
+        if new_size > 0:
+            self.chunk_size = new_size
+            return True
+        return False
 
     def start_server(self):
         try:

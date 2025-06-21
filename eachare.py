@@ -143,6 +143,19 @@ def list_files(peer):
             message = f"LS"
             peer.send_message(peer_conhecido[0], peer_conhecido[1], message)
 
+def alterar_tamanho_chunk(peer):
+    """Função para alterar o tamanho do chunk usado nos downloads"""
+    print("Digite novo tamanho de chunk:")
+    try:
+        novo_tamanho = int(input("> ").strip())
+        if novo_tamanho > 0:
+            peer.set_chunk_size(novo_tamanho)
+            print(f"Tamanho de chunk alterado: {novo_tamanho}")
+        else:
+            print("Erro: O tamanho do chunk deve ser um número positivo.")
+    except ValueError:
+        print("Erro: Digite um número válido.")
+
 def sair(peer):
     print("Saindo...")
     # Filtra os peers conhecidos que estão ONLINE
@@ -188,7 +201,7 @@ def menu(peer):
                 # por enquanto apenas pra testar o clock
                 peer.print_peers_conhecidos()
             case 6:
-                print("Não implementado")
+                alterar_tamanho_chunk(peer)
             case 9:
                 sair(peer)
                 break
