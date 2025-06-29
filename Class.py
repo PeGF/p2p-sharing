@@ -1,7 +1,8 @@
-import socket
 import threading
-import os
 import base64
+import socket
+import time
+import os
 
 class Clock:
     def __init__(self):
@@ -26,9 +27,11 @@ class Peer:
         self.port = port
         self.clock = clock
         self.file_list = []  # Lista de arquivos compartilhados
-        self.chunk_size = 256  # Tamanho padrão do chunk
+        self.chunk_size = 256
         self.chosen_file = None  # Arquivo escolhido para download
         self.file_parts = {}  # Dicionário para armazenar partes do arquivo
+        self.peers_download = []
+        self.download_stats = {} # {(chunk_size, n_peers, file_size): [tempos]}
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((host, port))
         self.server.listen(10)
@@ -88,11 +91,6 @@ class Peer:
                 return peer[2]  # retorna o status
         return None  # retorna None se o peer não for encontrado
     
-    '''
-    def get_peers(self):
-        return self.peers
-    '''
-    
     def get_diretorio_compartilhado(self):
         return self.diretorio_compartilhado
 
@@ -104,6 +102,12 @@ class Peer:
             self.chunk_size = new_size
             return True
         return False
+
+    def add_download_stat(self, chunk_size, n_peers, file_size, tempo):
+        key = (chunk_size, n_peers, file_size)
+        if key not in self.download_stats:
+            self.download_stats[key] = []
+        self.download_stats[key].append(tempo)
 
     def start_server(self):
         try:
@@ -296,12 +300,24 @@ class Peer:
 
                 tamanho_arquivo = int(self.chosen_file.split(":")[1])
                 quant_chunks = tamanho_arquivo // tamanho_chunk + (1 if tamanho_arquivo % tamanho_chunk > 0 else 0)
+                peer = f"{ip[0]}:{ip[1]}"
+                if peer not in self.peers_download:
+                    self.peers_download.append(peer)
+
+                # Início da medição de tempo
+                if not hasattr(self, 'download_start_time') or self.download_start_time is None:
+                    self.download_start_time = time.perf_counter()
 
                 # transforma em binário
                 conteudo_binario = base64.b64decode(conteudo_codificado)
                 self.file_parts[parte_chunk] = conteudo_binario
 
                 if len(self.file_parts) == quant_chunks:
+
+                    # Fim da medição de tempo
+                    download_end_time = time.perf_counter()
+                    tempo_download = download_end_time - self.download_start_time
+
                     arquivo_binario = b""
                     for i in range(quant_chunks):
                         arquivo_binario += self.file_parts.get(i, b"")
@@ -316,13 +332,18 @@ class Peer:
                         print(f"Download do arquivo {nome_arquivo} finalizado.")
                         print()
 
+                        n_peers = len(self.peers_download)
+                        self.add_download_stat(tamanho_chunk, n_peers, tamanho_arquivo, tempo_download)
+
                     except Exception as e:
                         print(f"[tratar_mensagem][FILE] Erro ao salvar o arquivo {nome_arquivo}: {e}")
 
                     finally:
                         self.chosen_file = None
                         self.file_parts = {}
-
+                        self.download_start_time = None 
+                        self.peers_download = []  # Limpa a lista de peers que participaram do download
+                
 
             elif partes[2] == "RETURN_HELLO":
                 for peer in self.peers_conhecidos:
@@ -363,36 +384,6 @@ class Peer:
         except (BrokenPipeError, ConnectionResetError):
             print("Erro ao enviar resposta.")
 
-    '''
-    def handle_peer(self, conn, addr):
-        self.peers.append(conn)
-        try:
-            while True:
-                data = conn.recv(1024).decode()
-                if not data:
-                    break
-                self.tratar_mensagem(data, conn)
-        except ConnectionResetError:
-            print(f"Conexão perdida com {addr}")
-        finally:
-            conn.close()
-            self.peers.remove(conn)
-
-    def listen_to_peer(self, conn):
-        try:
-            while True:
-                data = conn.recv(1024).decode()
-                
-                if data:
-                    self.tratar_mensagem(data, conn)
-        except ConnectionResetError:
-            print("Conexão com o peer foi encerrada.")
-        finally:
-            conn.close()
-            if conn in self.peers:
-                self.peers.remove(conn)
-    '''
-
     def add_peer(self, peer):
         peer.append(0)
         self.peers_conhecidos.append(peer)
@@ -412,20 +403,6 @@ class Peer:
                 if peer_str not in peers_existentes:
                     f.write(f"{peer_str}\n")
                     peers_existentes.add(peer_str) 
-
-    '''
-    def close_all_sockets(self):
-        for peer in self.peers:
-            try:
-                peer.close()
-            except Exception as e:
-                print(f"Erro ao fechar conexão com peer: {e}")
-        self.peers.clear()
-        try:
-            self.server.close()
-        except Exception as e:
-            print(f"Erro ao fechar o servidor: {e}")
-    '''
 
 def exibir_menu_arquivos(lista_arquivos: list):
     # lista_arquivos = [(nome_arquivo, (peer))]

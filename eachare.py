@@ -156,6 +156,16 @@ def alterar_tamanho_chunk(peer):
     except ValueError:
         print("Erro: Digite um número válido.")
 
+import statistics
+
+def exibir_estatisticas(peer):
+    print(f"{'Tam. chunk':10} | {'N peers':7} | {'Tam. arquivo':12} | {'N':3} | {'Tempo [s]':10} | {'Desvio':10}")
+    for (chunk_size, n_peers, file_size), tempos in peer.download_stats.items():
+        n = len(tempos)
+        media = sum(tempos) / n if n > 0 else 0
+        desvio = statistics.stdev(tempos) if n > 1 else 0
+        print(f"{chunk_size:10} | {n_peers:7} | {file_size:12} | {n:3} | {media:10.5f} | {desvio:10.5f}")
+
 def sair(peer):
     print("Saindo...")
     # Filtra os peers conhecidos que estão ONLINE
@@ -198,8 +208,7 @@ def menu(peer):
             case 4:
                 list_files(peer)
             case 5:
-                # por enquanto apenas pra testar o clock
-                peer.print_peers_conhecidos()
+                exibir_estatisticas(peer)
             case 6:
                 alterar_tamanho_chunk(peer)
             case 9:
