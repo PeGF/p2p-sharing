@@ -1,6 +1,7 @@
 import sys
 import os
 import time
+import statistics
 from Class import Clock, Peer
 
 # atualizei essa função pra tbm listar o tamanho dos arquivos, só pra ficar mais coerente com a outra parte do código
@@ -155,8 +156,6 @@ def alterar_tamanho_chunk(peer):
             print("Erro: O tamanho do chunk deve ser um número positivo.")
     except ValueError:
         print("Erro: Digite um número válido.")
-
-import statistics
 
 def exibir_estatisticas(peer):
     print(f"{'Tam. chunk':10} | {'N peers':7} | {'Tam. arquivo':12} | {'N':3} | {'Tempo [s]':10} | {'Desvio':10}")

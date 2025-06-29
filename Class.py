@@ -364,23 +364,41 @@ class Peer:
         print(f'Encaminhando mensagem "{mensagem_formatada.strip()}" para {host}:{port}')
 
         try:
-            # Cria uma nova conexão temporária
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as conn:
                 conn.settimeout(timeout)
                 conn.connect((host, port))
                 conn.sendall(mensagem_formatada.encode())
 
-                # Recebe a resposta
-                response = conn.recv(1024).decode()
-                self.tratar_mensagem(response, conn)
+                # Recebe o tamanho da resposta
+                tamanho_bytes = b''
+                while len(tamanho_bytes) < 8:
+                    parte = conn.recv(8 - len(tamanho_bytes))
+                    if not parte:
+                        raise ConnectionError("Conexão fechada antes de receber o tamanho.")
+                    tamanho_bytes += parte
+                tamanho = int.from_bytes(tamanho_bytes, 'big')
+
+                # Recebe a resposta completa
+                response = b''
+                while len(response) < tamanho:
+                    parte = conn.recv(min(4096, tamanho - len(response)))
+                    if not parte:
+                        raise ConnectionError("Conexão fechada antes de receber toda a mensagem.")
+                    response += parte
+
+                response_decoded = response.decode()
+                self.tratar_mensagem(response_decoded, conn)
         except socket.timeout:
             print(f"Timeout ao enviar mensagem para {host}:{port}")
-        except (BrokenPipeError, ConnectionResetError) as e:
+        except (BrokenPipeError, ConnectionResetError, ConnectionError) as e:
             print(f"Erro ao enviar mensagem para {host}:{port}: {e}")
     
     def reply(self, message, conn):
         try:
-            conn.sendall(message.encode())
+            data = message.encode()
+            tamanho = len(data)
+            conn.sendall(tamanho.to_bytes(8, 'big'))  # 8 bytes para o tamanho
+            conn.sendall(data)
         except (BrokenPipeError, ConnectionResetError):
             print("Erro ao enviar resposta.")
 

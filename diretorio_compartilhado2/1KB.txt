@@ -1,0 +1,10 @@
+I'll provide a more in-depth explanation of the changes made to the p2p-sharing project since April 4, 2025. Let me analyze the codebase more thoroughly to understand the specific implementation details. Let's examine more sections of the Class.py file to understand the key changes and features implemented: Let's also check the changes in directory contents: Let's now look at the difference between the first commit on April 4 and the final commit on May 13: Now, let's see what vizinhos2.txt contains: Let's see the diff of the Class.py file between the first and final versions: Let's look at more of the diff: Based on the detailed code analysis, here's a comprehensive explanation of what has changed in the p2p-sharing project since April 4, 2025:
+
+## 1. Lamport Clock Implementation
+
+The project has implemented a distributed logical clock system (Lamport Clock) to maintain temporal ordering of events across the peer-to-peer network:
+
+sdafsdf asf sda
+f asdf sad
+f asdf asd
+fsag asfdlfnsdafj nasdlkjf saljkfn kçlajshf klçjahbfçlkajshf lçkashflk jashdflkjsha dlkfhaslkjf haslkdfhgasçli fhglaskdhgfaçlksj hgaçsikdjhfaçskjdhf çiaskdjhflaskdjfghlasçkdj fhasçkjfhaçsojkdfhfa.skjdh
