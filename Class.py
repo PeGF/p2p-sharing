@@ -25,7 +25,10 @@ class Peer:
         self.host = host
         self.port = port
         self.clock = clock
+        self.file_list = []  # Lista de arquivos compartilhados
         self.chunk_size = 256  # Tamanho padrão do chunk
+        self.chosen_file = None  # Arquivo escolhido para download
+        self.file_parts = {}  # Dicionário para armazenar partes do arquivo
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((host, port))
         self.server.listen(10)
@@ -65,6 +68,13 @@ class Peer:
 
     def get_peers_conhecidos(self):
         return self.peers_conhecidos
+    
+    def get_peers_online(self):
+        peers_filtrados = [
+            peer_conhecido for peer_conhecido in self.peers_conhecidos
+            if (peer_conhecido[0] != self.get_host() or peer_conhecido[1] != self.get_port()) and peer_conhecido[2] == "ONLINE"
+        ]
+        return peers_filtrados
     
     def get_peers_conhecidos_formatado(self):
         result = ""
@@ -236,45 +246,83 @@ class Peer:
             elif partes[2] == "LS_LIST":
                 # pega os arquivos
                 arquivos_recebidos = partes[4:]
-                escolha = exibir_menu_arquivos(arquivos_recebidos, (ip[0], ip[1]))
+                self.file_list.append([arquivos_recebidos, (f"{ip[0]}:{ip[1]}")])
 
-                if escolha == 0:
-                    return
-                else:
-                    arquivo_escolhido = arquivos_recebidos[escolha - 1]
-                    mensagem = f"DL {arquivo_escolhido} 0 0"
-                    self.send_message(ip[0], int(ip[1]), mensagem)
+                if len(self.file_list) == len(self.get_peers_online()):
+                    escolha = exibir_menu_arquivos(self.file_list)
+
+                    if escolha == 0:
+                        self.file_list = []  # Limpa a lista de arquivos
+                        return
+                    else:
+                        # ['file.txt:49', ['127.0.0.1:5001', '127.0.0.1:5002']]
+                        arquivo, peers = escolha
+                        self.chosen_file = arquivo
+                        nome_arquivo, tamanho_arquivo = arquivo.split(":")
+                        tamanho_arquivo = int(tamanho_arquivo)
+                        quant_chunks = tamanho_arquivo // self.chunk_size + (1 if tamanho_arquivo % self.chunk_size > 0 else 0)
+                        quant_peers = len(peers)
+
+                        # pedir o chunk para cada peer
+                        idx = 0
+                        while idx < quant_chunks:
+                            # calcula o peer que vai receber o chunk
+                            peer_idx = idx % quant_peers
+                            peer = peers[peer_idx]
+                            ip = peer.split(":")
+                            mensagem = f"DL {nome_arquivo} {self.chunk_size} {idx}"
+                            self.send_message(ip[0], int(ip[1]), mensagem)
+                            idx += 1
+                            self.file_list = []  # Limpa a lista de arquivos
 
             elif partes[2] == "DL":
                 arquivo = partes[3].split(":")[0]
+                size_chunk = partes[4]
+                chunk_part = partes[5]
                 caminho_arquivo = os.path.join(self.diretorio_compartilhado, arquivo)
-                arquivo_codificado = codificar_base64(caminho_arquivo)
-                mensage = f"{self.host}:{self.port} {self.clock.clock} FILE {arquivo} 0 0 {arquivo_codificado}"
+                arquivo_codificado = codificar_base64(caminho_arquivo, size_chunk, chunk_part)
+                mensage = f"{self.host}:{self.port} {self.clock.clock} FILE {arquivo} {size_chunk} {chunk_part} {arquivo_codificado}"
                 if conn: 
                     self.reply(mensage, conn)
                 else:
-                    print("slkdjf")
+                    print("[tratar_mensagem][DL] Erro ao enviar mensagem para o peer, conexão não estabelecida.")
 
             elif partes[2] == "FILE":
 
                 nome_arquivo = partes[3]
+                tamanho_chunk = int(partes[4])
+                parte_chunk = int(partes[5])
                 conteudo_codificado = partes[6]
+
+                tamanho_arquivo = int(self.chosen_file.split(":")[1])
+                quant_chunks = tamanho_arquivo // tamanho_chunk + (1 if tamanho_arquivo % tamanho_chunk > 0 else 0)
 
                 # transforma em binário
                 conteudo_binario = base64.b64decode(conteudo_codificado)
+                self.file_parts[parte_chunk] = conteudo_binario
 
-                # salva o arquivo no diretório compartilhado
-                caminho_arquivo = os.path.join(self.diretorio_compartilhado, nome_arquivo)
-
-                try:
-                    with open(caminho_arquivo, "wb") as arquivo:
-                        arquivo.write(conteudo_binario)
-
-                    print(f"Download do arquivo {nome_arquivo} finalizado.")
-                    print()
+                if len(self.file_parts) == quant_chunks:
+                    arquivo_binario = b""
+                    for i in range(quant_chunks):
+                        arquivo_binario += self.file_parts.get(i, b"")
                     
-                except Exception as e:
-                    print(f"Erro ao salvar o arquivo {nome_arquivo}: {e}")
+                    # salva o arquivo no diretório compartilhado
+                    caminho_arquivo = os.path.join(self.diretorio_compartilhado, nome_arquivo)
+
+                    try:
+                        with open(caminho_arquivo, "wb") as arquivo:
+                            arquivo.write(arquivo_binario)
+
+                        print(f"Download do arquivo {nome_arquivo} finalizado.")
+                        print()
+
+                    except Exception as e:
+                        print(f"[tratar_mensagem][FILE] Erro ao salvar o arquivo {nome_arquivo}: {e}")
+
+                    finally:
+                        self.chosen_file = None
+                        self.file_parts = {}
+
 
             elif partes[2] == "RETURN_HELLO":
                 for peer in self.peers_conhecidos:
@@ -379,7 +427,24 @@ class Peer:
             print(f"Erro ao fechar o servidor: {e}")
     '''
 
-def exibir_menu_arquivos(arquivos_recebidos, ip):
+def exibir_menu_arquivos(lista_arquivos: list):
+    # lista_arquivos = [(nome_arquivo, (peer))]
+    arquivos_recebidos = {}
+    # if nome e tamanho iguais para arquivos de peers diferentes
+    for idx, arquivo in enumerate(lista_arquivos, start=1):
+        files = arquivo[0]
+        peer = arquivo[1]
+        for file in files:
+            if arquivos_recebidos.get(f"{file}"):
+                arquivos_recebidos[f"{file}"].append(peer)
+            else:
+                arquivos_recebidos[f"{file}"] = [peer]
+
+    # Debug
+    print(lista_arquivos)
+    print(arquivos_recebidos)
+
+
     # larguras do menu
     largura_nome = 30
     largura_tamanho = 10
@@ -394,9 +459,12 @@ def exibir_menu_arquivos(arquivos_recebidos, ip):
 
     # menu
     print(f"{'[0] Cancelar'.ljust(largura_nome)}|{' '.ljust(largura_tamanho)}|{' '.ljust(largura_peer)}")
-    for idx, arquivo in enumerate(arquivos_recebidos, start=1):
+    nome_arquivos = arquivos_recebidos.keys()
+
+    for idx, arquivo in enumerate(nome_arquivos, start=1):
         nome, tamanho = arquivo.split(":")
-        peer = f"{ip[0]}:{ip[1]}"
+        peers = arquivos_recebidos.get(arquivo)
+        peer = ", ".join(peers)
         print(f"[{idx}] {nome.ljust(largura_nome - len(f'[{idx}] '))}|{tamanho.ljust(largura_tamanho)}|{peer.ljust(largura_peer)}")
 
     print()
@@ -410,14 +478,24 @@ def exibir_menu_arquivos(arquivos_recebidos, ip):
         except ValueError:
             pass
 
-    return escolha
+    escolha = escolha - 1  # Ajusta para o índice da lista
+    if escolha == -1:
+        return 0  # Cancelar
+    else:
+        # Retorna o nome do arquivo e os peers associados
+        arquivo_escolhido = list(arquivos_recebidos.keys())[escolha]
+        return [arquivo_escolhido, arquivos_recebidos[arquivo_escolhido]]  
 
-def codificar_base64(caminho_arquivo):
+
+def codificar_base64(caminho_arquivo, size_chunk, chunk_part):
     try:
+        inicio = int(chunk_part) * int(size_chunk)
         # abre o arquivo em baixo nivel
         with open(caminho_arquivo, "rb") as arquivo:
+            arquivo.seek(inicio)
             # le o conteúdo do arquivo
-            conteudo = arquivo.read()
+            conteudo = arquivo.read(int(size_chunk))
+            
             # codifica o conteúdo em base64
             conteudo_base64 = base64.b64encode(conteudo)
             return conteudo_base64.decode('utf-8')  # retorna como string

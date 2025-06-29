@@ -76,7 +76,7 @@ python3 eachare.py <endereço>:<porta> <arquivo_vizinhos> <diretório_compartilh
 
 **Exemplo:**
 ```bash
-python3 eachare.py 127.0.0.1:8001 vizinhos.txt diretorio_compartilhado
+python3 eachare.py 127.0.0.1:5001 vizinhos.txt diretorio_compartilhado
 ```
 
 ### Parâmetros
